@@ -1,0 +1,14 @@
+{
+  "name": "sales-execution-hub-v7-cloud",
+  "private": true,
+  "type": "module",
+  "version": "7.0.0",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "db:migrate": "wrangler d1 migrations apply sales-execution-hub --remote"
+  },
+  "devDependencies": {
+    "wrangler": "^4.0.0"
+  }
+}
