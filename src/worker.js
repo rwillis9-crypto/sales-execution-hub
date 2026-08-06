@@ -73,19 +73,22 @@ function isSameOrigin(request) {
 }
 
 function ensureSchema(db) {
-  if (!schemaReady) schemaReady = db.exec(`
-    CREATE TABLE IF NOT EXISTS hub_state (
+  if (!schemaReady) schemaReady = (async () => {
+    await db.prepare(`CREATE TABLE IF NOT EXISTS hub_state (
       id TEXT PRIMARY KEY,
       state_json TEXT NOT NULL,
       revision INTEGER NOT NULL DEFAULT 1,
       updated_at TEXT NOT NULL
-    );
-    CREATE TABLE IF NOT EXISTS login_attempts (
+    )`).run();
+    await db.prepare(`CREATE TABLE IF NOT EXISTS login_attempts (
       ip TEXT PRIMARY KEY,
       attempts INTEGER NOT NULL,
       window_started_at INTEGER NOT NULL
-    );
-  `);
+    )`).run();
+  })().catch(error => {
+    schemaReady = null;
+    throw error;
+  });
   return schemaReady;
 }
 
@@ -125,8 +128,7 @@ async function api(request, env, url) {
     const suppliedPassword = typeof body.password === "string" ? body.password.trim() : "";
     if (!suppliedPassword || !(await passwordsMatch(suppliedPassword, appPassword))) {
       await recordLoginFailure(env.DB, ip);
-      const countMatch = suppliedPassword.length === appPassword.length;
-      return json({ error: `Password was not accepted. Diagnostic: browser and Cloudflare have ${countMatch ? "the same" : "different"} character count.` }, 401);
+      return json({ error: "Password was not accepted." }, 401);
     }
     await clearLoginFailures(env.DB, ip);
     const token = await sessionToken(sessionSecret);
