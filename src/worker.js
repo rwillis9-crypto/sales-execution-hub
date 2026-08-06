@@ -125,7 +125,8 @@ async function api(request, env, url) {
     const suppliedPassword = typeof body.password === "string" ? body.password.trim() : "";
     if (!suppliedPassword || !(await passwordsMatch(suppliedPassword, appPassword))) {
       await recordLoginFailure(env.DB, ip);
-      return json({ error: "Password was not accepted." }, 401);
+      const countMatch = suppliedPassword.length === appPassword.length;
+      return json({ error: `Password was not accepted. Diagnostic: browser and Cloudflare have ${countMatch ? "the same" : "different"} character count.` }, 401);
     }
     await clearLoginFailures(env.DB, ip);
     const token = await sessionToken(sessionSecret);
