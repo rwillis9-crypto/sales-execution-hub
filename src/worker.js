@@ -51,6 +51,7 @@ async function validSession(request, secret) {
 }
 
 async function passwordsMatch(supplied, expected) {
+  if (typeof supplied !== "string" || typeof expected !== "string" || !expected) return false;
   const [a, b] = await Promise.all([crypto.subtle.digest("SHA-256", encoder.encode(supplied)), crypto.subtle.digest("SHA-256", encoder.encode(expected))]);
   const left = new Uint8Array(a), right = new Uint8Array(b);
   let mismatch = 0;
@@ -111,19 +112,23 @@ async function clearLoginFailures(db, ip) {
 async function api(request, env, url) {
   await ensureSchema(env.DB);
   const path = url.pathname;
-  const secured = await validSession(request, env.SESSION_SECRET);
+  const appPassword = typeof env.APP_PASSWORD === "string" ? env.APP_PASSWORD.trim() : "";
+  const sessionSecret = typeof env.SESSION_SECRET === "string" ? env.SESSION_SECRET.trim() : "";
+  if (!appPassword || !sessionSecret) return json({ error: "Server authentication is not configured. Check APP_PASSWORD and SESSION_SECRET in Cloudflare." }, 503);
+  const secured = await validSession(request, sessionSecret);
 
   if (path === "/api/login" && request.method === "POST") {
     if (!isSameOrigin(request)) return json({ error: "Request origin was not accepted." }, 403);
     const ip = clientIp(request);
     if (!(await loginAllowed(env.DB, ip))) return json({ error: "Too many attempts. Try again in 15 minutes." }, 429, { "retry-after": String(LOGIN_WINDOW_SECONDS) });
     const body = await request.json().catch(() => ({}));
-    if (typeof body.password !== "string" || !(await passwordsMatch(body.password, env.APP_PASSWORD))) {
+    const suppliedPassword = typeof body.password === "string" ? body.password.trim() : "";
+    if (!suppliedPassword || !(await passwordsMatch(suppliedPassword, appPassword))) {
       await recordLoginFailure(env.DB, ip);
       return json({ error: "Password was not accepted." }, 401);
     }
     await clearLoginFailures(env.DB, ip);
-    const token = await sessionToken(env.SESSION_SECRET);
+    const token = await sessionToken(sessionSecret);
     return json({ authenticated: true }, 200, { "set-cookie": `seh_session=${token}; Max-Age=${SESSION_SECONDS}; Path=/; HttpOnly; Secure; SameSite=Strict` });
   }
 
