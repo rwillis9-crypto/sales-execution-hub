@@ -85,6 +85,13 @@ function ensureSchema(db) {
       attempts INTEGER NOT NULL,
       window_started_at INTEGER NOT NULL
     )`).run();
+    await db.prepare(`CREATE TABLE IF NOT EXISTS hub_equipment_chunks (
+      state_id TEXT NOT NULL,
+      chunk_index INTEGER NOT NULL,
+      chunk_b64 TEXT NOT NULL,
+      updated_at TEXT NOT NULL,
+      PRIMARY KEY (state_id, chunk_index)
+    )`).run();
   })().catch(error => {
     schemaReady = null;
     throw error;
@@ -110,6 +117,47 @@ async function recordLoginFailure(db, ip) {
 
 async function clearLoginFailures(db, ip) {
   await db.prepare("DELETE FROM login_attempts WHERE ip = ?").bind(ip).run();
+}
+
+const EQUIPMENT_CHUNK_BYTES = 900_000;
+const MAX_EQUIPMENT_SNAPSHOT_BYTES = 32_000_000;
+const MAX_CORE_STATE_BYTES = 1_800_000;
+
+function encodeEquipmentChunks(value) {
+  const bytes = encoder.encode(JSON.stringify(value));
+  const chunks = [];
+  for (let start = 0; start < bytes.length; start += EQUIPMENT_CHUNK_BYTES) {
+    chunks.push(b64url(bytes.slice(start, start + EQUIPMENT_CHUNK_BYTES)));
+  }
+  return { chunks, byteLength: bytes.length };
+}
+
+async function loadEquipmentSnapshot(db) {
+  const result = await db.prepare("SELECT chunk_b64 FROM hub_equipment_chunks WHERE state_id = 'primary' ORDER BY chunk_index").all();
+  const rows = result.results || [];
+  if (!rows.length) return [];
+  const decoded = rows.map(row => fromB64url(row.chunk_b64));
+  const length = decoded.reduce((sum, chunk) => sum + chunk.length, 0);
+  const bytes = new Uint8Array(length);
+  let offset = 0;
+  for (const chunk of decoded) {
+    bytes.set(chunk, offset);
+    offset += chunk.length;
+  }
+  const parsed = JSON.parse(new TextDecoder().decode(bytes));
+  return Array.isArray(parsed) ? parsed : [];
+}
+
+async function saveEquipmentSnapshot(db, rows) {
+  const { chunks, byteLength } = encodeEquipmentChunks(rows);
+  if (byteLength > MAX_EQUIPMENT_SNAPSHOT_BYTES) throw new Error("Equipment snapshot is too large to save.");
+  const now = new Date().toISOString();
+  const statements = [db.prepare("DELETE FROM hub_equipment_chunks WHERE state_id = 'primary'")];
+  chunks.forEach((chunk, index) => statements.push(
+    db.prepare("INSERT INTO hub_equipment_chunks (state_id, chunk_index, chunk_b64, updated_at) VALUES ('primary', ?, ?, ?)").bind(index, chunk, now)
+  ));
+  await db.batch(statements);
+  return { rows: rows.length, chunks: chunks.length, bytes: byteLength };
 }
 
 async function api(request, env, url) {
@@ -145,15 +193,38 @@ async function api(request, env, url) {
   if (path === "/api/state" && request.method === "GET") {
     const row = await env.DB.prepare("SELECT state_json, revision FROM hub_state WHERE id = 'primary'").first();
     if (!row) return json({ error: "No saved workspace yet." }, 404);
-    return new Response(row.state_json, { headers: { "content-type": "application/json; charset=utf-8", "cache-control": "no-store", "etag": `\"${row.revision}\"`, "x-content-type-options": "nosniff" } });
+    const state = JSON.parse(row.state_json);
+    state.equipmentSourceRows = await loadEquipmentSnapshot(env.DB);
+    return new Response(JSON.stringify(state), { headers: { "content-type": "application/json; charset=utf-8", "cache-control": "no-store", "etag": `\"${row.revision}\"`, "x-content-type-options": "nosniff" } });
+  }
+
+  if (path === "/api/equipment-snapshot" && request.method === "PUT") {
+    if (!isSameOrigin(request)) return json({ error: "Request origin was not accepted." }, 403);
+    const size = Number(request.headers.get("content-length") || 0);
+    if (size > MAX_EQUIPMENT_SNAPSHOT_BYTES) return json({ error: "Equipment snapshot is too large to save." }, 413);
+    const body = await request.text();
+    if (encoder.encode(body).length > MAX_EQUIPMENT_SNAPSHOT_BYTES) return json({ error: "Equipment snapshot is too large to save." }, 413);
+    let rows;
+    try {
+      rows = JSON.parse(body);
+      if (!Array.isArray(rows)) throw new Error("invalid");
+    } catch {
+      return json({ error: "Equipment snapshot data was not valid." }, 400);
+    }
+    try {
+      const saved = await saveEquipmentSnapshot(env.DB, rows);
+      return json({ saved: true, ...saved });
+    } catch (error) {
+      return json({ error: error?.message || "Equipment snapshot could not be saved." }, 500);
+    }
   }
 
   if (path === "/api/state" && request.method === "PUT") {
     if (!isSameOrigin(request)) return json({ error: "Request origin was not accepted." }, 403);
     const size = Number(request.headers.get("content-length") || 0);
-    if (size > 8_000_000) return json({ error: "Workspace is too large to save." }, 413);
+    if (size > MAX_CORE_STATE_BYTES) return json({ error: "Core workspace is too large to save." }, 413);
     const body = await request.text();
-    if (body.length > 8_000_000) return json({ error: "Workspace is too large to save." }, 413);
+    if (encoder.encode(body).length > MAX_CORE_STATE_BYTES) return json({ error: "Core workspace is too large to save." }, 413);
     try { const parsed = JSON.parse(body); if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) throw new Error("invalid"); } catch { return json({ error: "Workspace data was not valid." }, 400); }
     const current = await env.DB.prepare("SELECT revision FROM hub_state WHERE id = 'primary'").first();
     const requestedRevision = (request.headers.get("if-match") || "").replaceAll('"', "");
