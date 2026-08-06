@@ -195,7 +195,7 @@ async function api(request, env, url) {
     if (!row) return json({ error: "No saved workspace yet." }, 404);
     const state = JSON.parse(row.state_json);
     state.equipmentSourceRows = await loadEquipmentSnapshot(env.DB);
-    return new Response(JSON.stringify(state), { headers: { "content-type": "application/json; charset=utf-8", "cache-control": "no-store", "etag": `\"${row.revision}\"`, "x-content-type-options": "nosniff" } });
+    return new Response(JSON.stringify(state), { headers: { "content-type": "application/json; charset=utf-8", "cache-control": "no-store", "etag": `\"${row.revision}\"`, "x-seh-revision": String(row.revision), "x-content-type-options": "nosniff" } });
   }
 
   if (path === "/api/equipment-snapshot" && request.method === "PUT") {
@@ -227,18 +227,18 @@ async function api(request, env, url) {
     if (encoder.encode(body).length > MAX_CORE_STATE_BYTES) return json({ error: "Core workspace is too large to save." }, 413);
     try { const parsed = JSON.parse(body); if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) throw new Error("invalid"); } catch { return json({ error: "Workspace data was not valid." }, 400); }
     const current = await env.DB.prepare("SELECT revision FROM hub_state WHERE id = 'primary'").first();
-    const requestedRevision = (request.headers.get("if-match") || "").replaceAll('"', "");
+    const requestedRevision = (request.headers.get("x-seh-revision") || request.headers.get("if-match") || "").replaceAll('"', "").trim();
     const now = new Date().toISOString();
     if (!current) {
       if (requestedRevision) return json({ error: "Workspace version conflict." }, 409);
       await env.DB.prepare("INSERT INTO hub_state (id, state_json, revision, updated_at) VALUES ('primary', ?, 1, ?)").bind(body, now).run();
-      return json({ saved: true }, 200, { etag: '"1"' });
+      return json({ saved: true }, 200, { etag: '"1"', "x-seh-revision": "1" });
     }
-    if (!requestedRevision || Number(requestedRevision) !== current.revision) return json({ error: "Workspace changed on another device." }, 409);
+    if (!requestedRevision || requestedRevision !== String(current.revision)) return json({ error: "Workspace changed on another device.", currentRevision: String(current.revision), receivedRevision: requestedRevision || "missing" }, 409);
     const nextRevision = current.revision + 1;
     const result = await env.DB.prepare("UPDATE hub_state SET state_json = ?, revision = ?, updated_at = ? WHERE id = 'primary' AND revision = ?").bind(body, nextRevision, now, current.revision).run();
     if (!result.meta.changes) return json({ error: "Workspace changed on another device." }, 409);
-    return json({ saved: true }, 200, { etag: `\"${nextRevision}\"` });
+    return json({ saved: true }, 200, { etag: `\"${nextRevision}\"`, "x-seh-revision": String(nextRevision) });
   }
 
   return json({ error: "Not found." }, 404);
