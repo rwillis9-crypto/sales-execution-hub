@@ -37,8 +37,18 @@ input,select,textarea{width:100%;border:1px solid #c9c5bb;border-radius:7px;back
 <style>
 /* V6.2 — protect the working pipeline from compressed table columns. */
 #page-pipeline .tablewrap{max-width:100%}
-#page-pipeline table.pipeline-table{table-layout:fixed;min-width:1555px}
+#page-pipeline table.pipeline-table{table-layout:fixed;min-width:1725px}
+#page-pipeline table.pipeline-table th:nth-child(1){width:44px}
+#page-pipeline table.pipeline-table th:nth-child(2){width:230px}
+#page-pipeline table.pipeline-table th:nth-child(3){width:160px}
+#page-pipeline table.pipeline-table th:nth-child(4){width:280px}
+#page-pipeline table.pipeline-table th:nth-child(5){width:280px}
+#page-pipeline table.pipeline-table th:nth-child(6){width:190px}
+#page-pipeline table.pipeline-table th:nth-child(7){width:330px}
+#page-pipeline table.pipeline-table th:nth-child(8){width:90px}
+#page-pipeline table.pipeline-table th:nth-child(9){width:121px}
 #page-pipeline table.pipeline-table td:nth-child(3) select{width:100%;min-width:0}
+#page-pipeline table.pipeline-table td:nth-child(7) .tag{white-space:normal;max-width:100%;line-height:1.25;overflow-wrap:anywhere}
 #page-pipeline table.pipeline-table td:nth-child(8),
 #page-pipeline table.pipeline-table td:nth-child(9){white-space:nowrap}
 #page-pipeline table.pipeline-table .actions{white-space:nowrap}
@@ -59,7 +69,7 @@ input,select,textarea{width:100%;border:1px solid #c9c5bb;border-radius:7px;back
 </div></section>
 <section class="page" id="page-pipeline"><div class="pagehead"><div><h2>Pipeline execution</h2><p>Fast updates in the grid. Full workflows in one panel.</p></div><button class="btn" data-add>+ Add opportunity</button></div>
 <div class="toolbar"><input id="search" type="search" placeholder="Search account or customer number"><select id="filterStatus"></select><select id="filterType"></select><select id="filterAttention"><option value="">All records</option><option value="attention">Needs attention</option><option value="stale">Needs updating</option><option value="install">Has install date</option><option value="hold">On hold</option></select><button class="btn light small" id="clearFilters">Clear</button><div class="healthlegend" aria-label="Account health legend"><span><i class="healthlight red"></i>Act now</span><span><i class="healthlight yellow"></i>Watch</span><span><i class="healthlight green"></i>On track</span><span><i class="healthlight purple"></i>On hold</span><span><i class="healthlight blue"></i>Ready</span><span><i class="healthlight gray"></i>Closed</span></div><span class="count" id="count"></span></div>
-<div class="tablewrap"><table class="pipeline-table"><colgroup><col style="width:40px"><col style="width:220px"><col style="width:170px"><col style="width:260px"><col style="width:270px"><col style="width:145px"><col style="width:260px"><col style="width:80px"><col style="width:110px"></colgroup><thead><tr><th>Account</th><th>Status</th><th>Current position</th><th>Next action</th><th>Install</th><th>Attention</th><th>Updated</th><th></th></tr></thead><tbody id="pipelineRows"></tbody></table></div></section>
+<div class="tablewrap"><table class="pipeline-table"><colgroup><col style="width:44px"><col style="width:230px"><col style="width:160px"><col style="width:280px"><col style="width:280px"><col style="width:190px"><col style="width:330px"><col style="width:90px"><col style="width:121px"></colgroup><thead><tr><th>Account</th><th>Status</th><th>Current position</th><th>Next action</th><th>Install</th><th>Attention</th><th>Updated</th><th></th></tr></thead><tbody id="pipelineRows"></tbody></table></div></section>
 <section class="page" id="page-reports"><div class="pagehead"><div><h2>Reports</h2><p>Management-ready reporting generated from normal execution—no duplicate rep entry.</p></div><div class="buttons"><button class="btn" id="printSummary">Print management summary</button><button class="btn light" id="downloadCsv">Export detail to CSV</button></div></div><div class="metrics" id="analyticsMetrics"></div><div class="analyticsgrid">
 <div class="box chartbox"><div class="charttitle"><h3>Pipeline by status</h3><span class="fine">Current portfolio</span></div><div class="donutrow"><div class="donut" id="statusDonut"></div><div class="legend" id="statusLegend"></div></div></div>
 <div class="box chartbox"><div class="charttitle"><h3>What management needs to unblock</h3><span class="fine">Current exceptions</span></div><div class="bars" id="bottleneckBars"></div></div>
