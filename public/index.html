@@ -140,7 +140,7 @@ window.SEHCloudAuth=(()=>{let pending=null;const overlay=()=>document.querySelec
 </script>
 <script>
 (()=>{"use strict";
-const VERSION="7.1.0",DB="sales_execution_hub_v3",V2KEY="sales_execution_hub_v2",V1KEY="sales_execution_hub_v1",LEGACY="royalcup_pipeline_tracker_v2";
+const VERSION="7.2.0",DB="sales_execution_hub_v3",V2KEY="sales_execution_hub_v2",V1KEY="sales_execution_hub_v1",LEGACY="royalcup_pipeline_tracker_v2";
 const L={status:["Not Started","Active","Stalled - Unresponsive","Stalled - Internal","Stalled - External","Closed - WON","Closed - LOST","On Hold"],type:["New - Equipment","New - Pricing Only","Existing - New","Existing - Swap","Existing - Pricing Only"],response:["Highly Responsive","Normal","Slow","Email Only","Phone Only","Text Only","Hard to Reach","Unresponsive"],c4c:["Not Entered","Entered"],crf:["N/A","Not Started","Started","Submitted","Time Exception Internal","Rework Needed","Approved"],credit:["N/A","Sent - Not Received Back","Time Exception (>3 days)","Received","Missing Data - Requested Update"],agreement:["Not Started","Started","Sent to Legal","Sent to Customer","Time Exception Internal","Time Exception External (>2 Days)","Rework Needed","Received and Executed","Master Agreement Applies"],powerbi:["Not Started","Is on Report","Is not on Report"]};
 const INSTALL=["RSD Connected","RSD Initial Deliver Conveyed","Site Survey or Pictures","RSD to Customer Intro","Install Scheduled","Install Conveyed to Customer","Install Complete"],RAM=["Handoff details complete","Handoff call complete","Customer introduction complete","Primary ownership transferred"],HOLD_REASONS=["Customer timing","Budget or funding","Site / construction delay","Seasonal or scheduled opening","Contract / legal","Internal equipment or supply constraint","Internal capacity / installation constraint","Strategic decision","Other"];
 const IMPORT_FIELDS=[
@@ -516,8 +516,21 @@ function setupQuarterGoals(){const totalField=$("#gpQuarterDisplay")?.closest(".
 setupQuarterGoals();
 const backupInfoV61=backupInfo;
 backupInfo=function(){backupInfoV61();const g=gpSettings();g.quarterlyGoals.forEach((v,i)=>{$("#gpQ"+(i+1)).value=v||"";$("#gpQ"+(i+1)+"Label").textContent=fiscalQuarterRange(g,i)+" goal"});updateQuarterCheck()};
-document.querySelector(".appversion").textContent="V7.1 · Secure cloud";
-async function init(){try{setup();await repo.init();const stored=await repo.load();if(stored)state=migrate(stored);else{const old=await repo.legacy();if(old){state=migrate(old);state.records.forEach(r=>r.history.unshift({id:id(),at:iso(),key:"migration",label:"Migrated into Version 3"}));await save("Earlier version imported");pop("Existing Hub data imported")}else state=blankState()}render();bindOpen();$("#saved").textContent="Ready";window.SEHCloudBoot.finish();setTimeout(reminderCheck,700)}catch(error){console.error(error);window.SEHCloudBoot.fail(error?.message||"Please check your connection, then reload Sales Hub.")}}init();
+/* V7.1 — make hidden Save requirements visible and preserve the open form after a cloud-save error. */
+function setupSaveSafety(){const form=$("#form");if(!form)return;form.addEventListener("invalid",event=>{const field=event.target;if(field.id==="fGpApproved"){setCollapsed($("#gpSection"),false);setTimeout(()=>{pop("Enter the CRF-approved / final annual GP before saving Closed Won.");field.focus()},0)}else if(field.id==="fAccount")setTimeout(()=>pop("Enter the account name before saving."),0);else if(field.id==="fPartnerProgram")setTimeout(()=>pop("Choose the partner program before saving."),0)},true);const originalSubmit=form.onsubmit;form.onsubmit=async function(event){try{return await originalSubmit.call(this,event)}catch(error){console.error(error);const message=error?.message||"Your cloud workspace could not be saved.";pop(`Save did not complete: ${message} Your form is still open—do not close it. Try Save again after the connection returns.`)}}}
+/* V7.2 — exact ECC numbers win before name review; display last import dates by category. */
+const normalizeEcc=value=>String(value??"").trim().replace(/[^0-9]/g,"").replace(/^0+(?=\d)/,"");
+equipmentTarget=function(customerNumber){const target=normalizeEcc(customerNumber);if(!target)return null;for(const record of state.records){if(normalizeEcc(record.number)===target)return{record,site:null};const site=rolloutData(record).sites.find(x=>normalizeEcc(x.number)===target);if(site)return{record,site}}return null};
+const adminRules=[["Download backup","↓","blue"],["Restore or migrate","↻","blue"],["Print complete snapshot","▤","gray"],["Clear cloud workspace","!","red"],["Campaigns and customer groups","◎","green"],["Partner equipment programs","✦","amber"],["Import Center","⇩","teal"],["Equipment status import","▣","amber"],["GP goals and pipeline coverage","↗","green"],["Appearance","◐","purple"],["Report header","▤","gray"],["Optional in-app reminders","◷","blue"],["Stall and follow-up rules","!","red"]];
+const backupBoxes=()=>[...document.querySelectorAll("#page-backup .box")];
+const adminBox=label=>backupBoxes().find(box=>box.querySelector(":scope > h3")?.dataset.adminLabel===label||box.querySelector(":scope > h3")?.textContent.trim()===label);
+function decorateAdmin(){backupBoxes().forEach(box=>{const heading=box.querySelector(":scope > h3");if(!heading||heading.dataset.adminDecorated)return;const label=heading.textContent.trim(),rule=adminRules.find(([name])=>label===name);if(!rule)return;heading.dataset.adminLabel=label;heading.dataset.adminDecorated="true";box.classList.add("admin-section","admin-"+rule[2]);const icon=document.createElement("span");icon.className="admin-section-icon";icon.setAttribute("aria-hidden","true");icon.textContent=rule[1];heading.prepend(icon)});const imports=adminBox("Import Center"),equipment=adminBox("Equipment status import");if(imports&&!$("#standardImportActivity"))imports.querySelector(":scope > h3").insertAdjacentHTML("afterend",'<div class="import-activity" id="standardImportActivity"></div>');if(equipment&&!$("#equipmentImportActivity"))equipment.querySelector(":scope > h3").insertAdjacentHTML("afterend",'<div class="import-activity" id="equipmentImportActivity"></div>')}
+function importActivity(history,kind){const latest=Array.isArray(history)?history[0]:null;if(!latest)return`<span class="import-activity-icon">○</span><span><strong>Last ${kind}:</strong> Never imported.</span>`;const file=latest.file?` · ${esc(latest.file)}`:"",detail=kind==="ESR refresh"?`${Number(latest.lines||0).toLocaleString()} lines · ${Number(latest.customers||0)} customers`:`${Number(latest.created||0)} created · ${Number(latest.updated||0)} updated`;return`<span class="import-activity-icon">✓</span><span><strong>Last ${kind}:</strong> ${fmtTime(latest.at)}${file}<br>${detail}</span>`}
+function renderImportActivity(){decorateAdmin();const standard=$("#standardImportActivity"),equipment=$("#equipmentImportActivity");if(standard)standard.innerHTML=importActivity(state.settings?.importHistory,"account / opportunity import");if(equipment)equipment.innerHTML=importActivity(state.settings?.equipmentImportHistory,"ESR refresh")}
+const backupInfoV72=backupInfo;
+backupInfo=function(){backupInfoV72();renderImportActivity()};
+document.querySelector(".appversion").textContent="V7.2 · Secure cloud";
+async function init(){try{setup();setupSaveSafety();await repo.init();const stored=await repo.load();if(stored)state=migrate(stored);else{const old=await repo.legacy();if(old){state=migrate(old);state.records.forEach(r=>r.history.unshift({id:id(),at:iso(),key:"migration",label:"Migrated into Version 3"}));await save("Earlier version imported");pop("Existing Hub data imported")}else state=blankState()}render();bindOpen();$("#saved").textContent="Ready";window.SEHCloudBoot.finish();setTimeout(reminderCheck,700)}catch(error){console.error(error);window.SEHCloudBoot.fail(error?.message||"Please check your connection, then reload Sales Hub.")}}init();
 })();
 </script>
 <style id="v63-section-signposting">
@@ -587,35 +600,13 @@ async function init(){try{setup();await repo.init();const stored=await repo.load
 })();
 </script>
 <script>
-(()=>{const box=document.querySelector('.statusbox');if(box&&!document.querySelector('#cloudLogout')){box.insertAdjacentHTML('beforeend','<button type="button" class="cloud-logout" id="cloudLogout">Sign out</button>');document.querySelector('#cloudLogout').onclick=()=>window.SEHCloudAuth.logout()}document.querySelector('.appversion').textContent='V7.1 · Secure cloud'})();
+(()=>{const box=document.querySelector('.statusbox');if(box&&!document.querySelector('#cloudLogout')){box.insertAdjacentHTML('beforeend','<button type="button" class="cloud-logout" id="cloudLogout">Sign out</button>');document.querySelector('#cloudLogout').onclick=()=>window.SEHCloudAuth.logout()}document.querySelector('.appversion').textContent='V7.2 · Secure cloud'})();
 </script>
-<script>
-/* V7.1 — Make Save requirements visible and keep an unsaved form safe after a cloud-save error. */
-(()=>{
-  const form=document.querySelector('#form'); if(!form) return;
-  form.addEventListener('invalid',event=>{
-    const field=event.target;
-    if(field.id==='fGpApproved'){
-      const section=document.querySelector('#gpSection');
-      if(typeof setCollapsed==='function') setCollapsed(section,false);
-      setTimeout(()=>{ pop('Enter the CRF-approved / final annual GP before saving Closed Won.'); field.focus(); },0);
-    }else if(field.id==='fAccount'){
-      setTimeout(()=>pop('Enter the account name before saving.'),0);
-    }else if(field.id==='fPartnerProgram'){
-      setTimeout(()=>pop('Choose the partner program before saving.'),0);
-    }
-  },true);
-  const originalSubmit=form.onsubmit;
-  form.onsubmit=async function(event){
-    try { return await originalSubmit.call(this,event); }
-    catch(error){
-      console.error(error);
-      const message=error?.message||'Your cloud workspace could not be saved.';
-      pop(`Save did not complete: ${message} Your form is still open—do not close it. Try Save again after the connection returns.`);
-    }
-  };
-  document.querySelector('.appversion').textContent='V7.1 · Secure cloud';
-})();
-</script>
+<style id="v72-admin-signposts">
+/* V7.2 — make Backup / Settings easy to scan and show source freshness where work is imported. */
+#page-backup .box.admin-section{border-left:4px solid var(--admin-accent,#65798a);transition:border-color .15s ease}
+#page-backup .box.admin-blue{--admin-accent:#2c78b9;--admin-tint:#e6f1fb}#page-backup .box.admin-teal{--admin-accent:#247b78;--admin-tint:#e3f2f1}#page-backup .box.admin-green{--admin-accent:#268159;--admin-tint:#e5f3eb}#page-backup .box.admin-amber{--admin-accent:#a36b09;--admin-tint:#fff2d9}#page-backup .box.admin-purple{--admin-accent:#7657ad;--admin-tint:#efe9f8}#page-backup .box.admin-red{--admin-accent:#bd4a42;--admin-tint:#fff0ef}#page-backup .box.admin-gray{--admin-accent:#677784;--admin-tint:#edf1f3}
+#page-backup .box.admin-section>h3{display:flex;align-items:center;gap:10px}.admin-section-icon{display:inline-grid;place-items:center;flex:0 0 27px;width:27px;height:27px;border-radius:8px;background:var(--admin-tint);color:var(--admin-accent);font-size:16px;font-weight:900;line-height:1}.import-activity{display:flex;align-items:flex-start;gap:8px;margin:10px 0 12px;padding:9px 11px;border:1px solid #d7e1e7;border-radius:9px;background:#f7fafb;color:#526a7d;font-size:12px;line-height:1.4}.import-activity strong{color:#173a56}.import-activity-icon{color:#247b78;font-size:15px;line-height:1.2}@media(max-width:650px){.import-activity{font-size:11px}}
+</style>
 </body>
 </html>
