@@ -193,9 +193,16 @@ async function api(request, env, url) {
   if (path === "/api/state" && request.method === "GET") {
     const row = await env.DB.prepare("SELECT state_json, revision FROM hub_state WHERE id = 'primary'").first();
     if (!row) return json({ error: "No saved workspace yet." }, 404);
-    const state = JSON.parse(row.state_json);
-    state.equipmentSourceRows = await loadEquipmentSnapshot(env.DB);
-    return new Response(JSON.stringify(state), { headers: { "content-type": "application/json; charset=utf-8", "cache-control": "no-store", "etag": `\"${row.revision}\"`, "x-seh-revision": String(row.revision), "x-content-type-options": "nosniff" } });
+    return new Response(row.state_json, { headers: { "content-type": "application/json; charset=utf-8", "cache-control": "no-store", "etag": `\"${row.revision}\"`, "x-seh-revision": String(row.revision), "x-content-type-options": "nosniff" } });
+  }
+
+  if (path === "/api/equipment-snapshot" && request.method === "GET") {
+    try {
+      const rows = await loadEquipmentSnapshot(env.DB);
+      return new Response(JSON.stringify(rows), { headers: { "content-type": "application/json; charset=utf-8", "cache-control": "no-store", "x-content-type-options": "nosniff" } });
+    } catch (error) {
+      return json({ error: error?.message || "Equipment snapshot could not be loaded." }, 500);
+    }
   }
 
   if (path === "/api/equipment-snapshot" && request.method === "PUT") {
