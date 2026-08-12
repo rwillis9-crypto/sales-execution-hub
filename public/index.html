@@ -140,8 +140,8 @@ window.SEHCloudAuth=(()=>{let pending=null;const overlay=()=>document.querySelec
 </script>
 <script>
 (()=>{"use strict";
-const VERSION="7.2.0",DB="sales_execution_hub_v3",V2KEY="sales_execution_hub_v2",V1KEY="sales_execution_hub_v1",LEGACY="royalcup_pipeline_tracker_v2";
-const L={status:["Not Started","Active","Stalled - Unresponsive","Stalled - Internal","Stalled - External","Closed - WON","Closed - LOST","On Hold"],type:["New - Equipment","New - Pricing Only","Existing - New","Existing - Swap","Existing - Pricing Only"],response:["Highly Responsive","Normal","Slow","Email Only","Phone Only","Text Only","Hard to Reach","Unresponsive"],c4c:["Not Entered","Entered"],crf:["N/A","Not Started","Started","Submitted","Time Exception Internal","Rework Needed","Approved"],credit:["N/A","Sent - Not Received Back","Time Exception (>3 days)","Received","Missing Data - Requested Update"],agreement:["Not Started","Started","Sent to Legal","Sent to Customer","Time Exception Internal","Time Exception External (>2 Days)","Rework Needed","Received and Executed","Master Agreement Applies"],powerbi:["Not Started","Is on Report","Is not on Report"]};
+const VERSION="7.5.0",DB="sales_execution_hub_v3",V2KEY="sales_execution_hub_v2",V1KEY="sales_execution_hub_v1",LEGACY="royalcup_pipeline_tracker_v2";
+const L={status:["Not Started","Active","Stalled - Unresponsive","Stalled - Internal","Stalled - External","Closed - WON","Closed - LOST","On Hold"],type:["New - Equipment","New - Pricing Only","Existing - New","Existing - New Location","Existing - Swap","Existing - Pricing Only"],response:["Highly Responsive","Normal","Slow","Email Only","Phone Only","Text Only","Hard to Reach","Unresponsive"],c4c:["Not Entered","Entered"],crf:["N/A","Not Started","Started","Submitted","Time Exception Internal","Rework Needed","Approved"],credit:["N/A","Sent - Not Received Back","Time Exception (>3 days)","Received","Missing Data - Requested Update"],agreement:["Not Started","Started","Sent to Legal","Sent to Customer","Time Exception Internal","Time Exception External (>2 Days)","Rework Needed","Received and Executed","Master Agreement Applies"],powerbi:["Not Started","Is on Report","Is not on Report"]};
 const INSTALL=["RSD Connected","RSD Initial Deliver Conveyed","Site Survey or Pictures","RSD to Customer Intro","Install Scheduled","Install Conveyed to Customer","Install Complete"],RAM=["Handoff details complete","Handoff call complete","Customer introduction complete","Primary ownership transferred"],HOLD_REASONS=["Customer timing","Budget or funding","Site / construction delay","Seasonal or scheduled opening","Contract / legal","Internal equipment or supply constraint","Internal capacity / installation constraint","Strategic decision","Other"];
 const IMPORT_FIELDS=[
 {key:"account",label:"Account Name",required:true,aliases:["account name","customer name","prospect name","opportunity name","account"]},
@@ -529,8 +529,54 @@ function importActivity(history,kind){const latest=Array.isArray(history)?histor
 function renderImportActivity(){decorateAdmin();const standard=$("#standardImportActivity"),equipment=$("#equipmentImportActivity");if(standard)standard.innerHTML=importActivity(state.settings?.importHistory,"account / opportunity import");if(equipment)equipment.innerHTML=importActivity(state.settings?.equipmentImportHistory,"ESR refresh")}
 const backupInfoV72=backupInfo;
 backupInfo=function(){backupInfoV72();renderImportActivity()};
-document.querySelector(".appversion").textContent="V7.2 · Secure cloud";
-async function init(){try{setup();setupSaveSafety();await repo.init();const stored=await repo.load();if(stored)state=migrate(stored);else{const old=await repo.legacy();if(old){state=migrate(old);state.records.forEach(r=>r.history.unshift({id:id(),at:iso(),key:"migration",label:"Migrated into Version 3"}));await save("Earlier version imported");pop("Existing Hub data imported")}else state=blankState()}render();bindOpen();$("#saved").textContent="Ready";window.SEHCloudBoot.finish();setTimeout(reminderCheck,700)}catch(error){console.error(error);window.SEHCloudBoot.fail(error?.message||"Please check your connection, then reload Sales Hub.")}}init();
+/* V7.3 — pricing-only customers do not need an installation target. Keep any prior
+   date intact so it is available again if the opportunity later includes equipment. */
+function syncTargetInstallAvailability(){const field=$("#fInstall")?.closest(".field");if(!field)return;const pricingOnly=$("#fType")?.value.includes("Pricing Only");const controls=[$("#fInstall"),$("#chooseInstallDate"),$("#fInstallAsap"),...$$('[data-install-weeks]')].filter(Boolean);controls.forEach(control=>control.disabled=pricingOnly);field.classList.toggle("install-not-applicable",pricingOnly);let note=$("#pricingOnlyInstallNote");if(!note){field.insertAdjacentHTML("beforeend",'<span class="fine pricing-only-install-note" id="pricingOnlyInstallNote">Not needed for pricing-only customers.</span>');note=$("#pricingOnlyInstallNote")}note.classList.toggle("hidden",!pricingOnly)}
+const openV73=open;
+open=function(key=null){openV73(key);syncTargetInstallAvailability()};
+/* V7.4 — an existing-customer expansion belongs in the execution view, but its GP
+   and CRF are owned elsewhere and must not affect new-sales reporting or saving. */
+const isExistingNewLocation=r=>r?.type==="Existing - New Location";
+const approvedGpV74=approvedGp;
+approvedGp=function(r){return isExistingNewLocation(r)?0:approvedGpV74(r)};
+const workingGpV74=workingGp;
+workingGp=function(r){return isExistingNewLocation(r)?0:workingGpV74(r)};
+const isGpPipelineV74=isGpPipeline;
+isGpPipeline=function(r){return !isExistingNewLocation(r)&&isGpPipelineV74(r)};
+const gpMetricsV74=gpMetrics;
+gpMetrics=function(records=state.records){return gpMetricsV74(records.filter(r=>!isExistingNewLocation(r)))};
+const gpFormStateV74=gpFormState;
+gpFormState=function(){gpFormStateV74();const excluded=isExistingNewLocation({type:$("#fType")?.value}),section=$("#gpSection"),note=$("#gpEntryNote"),approved=$("#fGpApproved");section?.classList.toggle("gp-excluded",excluded);[$("#fGpEstimate"),$("#fGpLevel"),approved].filter(Boolean).forEach(field=>field.disabled=excluded);if(approved)approved.required=!excluded&&$("#fStatus")?.value==="Closed - WON";if(excluded&&note)note.innerHTML="<b>Excluded from GP planning.</b> Existing-customer locations stay in the Hub for equipment and follow-through, but do not count toward new-sales GP, pipeline coverage, or booked GP."};
+const commitStatusV74=commitStatus;
+commitStatus=async function(record,to,select,data={}){if(to==="Closed - WON"&&isExistingNewLocation(record))return commitStatusV60(record,to,select,data);return commitStatusV74(record,to,select,data)};
+const openV74=open;
+open=function(key=null){openV74(key);syncGpExclusion()};
+function syncGpExclusion(){gpFormState()}
+/* V7.5 — Pipeline GP / FY value: make the GP quality and the remaining
+   fiscal-year contribution visible without adding another rep workflow. */
+function addDaysToIsoDate(value,count){const d=date(value);if(!d)return"";d.setDate(d.getDate()+Number(count||0));return d.toISOString().slice(0,10)}
+function pricingOnlyGpStart(r){return isPricingOnly(r)&&r?.status==="Closed - WON"?addDaysToIsoDate(closedWonDate(r),14):""}
+const approvedGpV75=approvedGp;
+approvedGp=function(r){if(isExistingNewLocation(r))return 0;return Math.max(0,Number(r?.gpFinalLocked??r?.gpApproved)||0)};
+const gpStartDateV75=gpStartDate;
+gpStartDate=function(r){return pricingOnlyGpStart(r)||gpStartDateV75(r)};
+function gpRemainingContribution(r,amount){const g=gpSettings(),start=date(gpStartDate(r)),fyStart=date(g.fiscalStart),fyEnd=date(g.fiscalEnd),now=date(today());if(!amount||!start||!fyStart||!fyEnd)return 0;const from=[start,fyStart,now].reduce((latest,current)=>current>latest?current:latest);if(from>fyEnd)return 0;const fyDays=Math.max(1,days(fyEnd,fyStart)+1);return Number(amount)*Math.min(1,Math.max(0,(days(fyEnd,from)+1)/fyDays))}
+function pipelineGpHtml(r){if(isExistingNewLocation(r))return'<div class="pipeline-gp excluded"><b>Excluded</b><span>Existing-customer location</span></div>';if(r.status==="Closed - LOST")return'<div class="pipeline-gp muted"><b>—</b><span>Closed lost</span></div>';const won=r.status==="Closed - WON",approved=approvedGp(r),raw=won?approved:(approved||Math.max(0,Number(r.gpEstimate)||0)),placeholder=!won&&!approved&&r.gpEstimateLevel!=="working",label=won?"Final GP — locked":approved?"CRF-approved final":"Working estimate";if(!raw)return`<div class="pipeline-gp muted"><b>GP not set</b><span>${esc(label)}</span></div>`;const fy=gpRemainingContribution(r,raw),start=pricingOnlyGpStart(r),detail=placeholder?`FY potential: ${money(fy)} · excluded`:won&&start?`FY remaining: ${money(fy)} · starts ${fmt(start)}`:`FY remaining: ${money(fy)}`;return`<div class="pipeline-gp ${placeholder?"placeholder":""}"><b>${money(raw)}</b><span>${esc(placeholder?"Placeholder — excluded":label)}</span><small>${detail}</small></div>`}
+function addPipelineGpColumn(){const list=filtered(),head=$("#page-pipeline thead tr");if(head&&!head.querySelector(".pipeline-gp-head")){const th=document.createElement("th");th.className="pipeline-gp-head";th.textContent="GP / FY value";const next=[...head.children].find(cell=>cell.textContent.trim()==="Next action");head.insertBefore(th,next||null)}$$("#pipelineRows tr").forEach((tr,index)=>{if(tr.querySelector(".pipeline-gp-cell"))return;const r=list[index],empty=tr.querySelector("td[colspan]");if(!r){if(empty)empty.colSpan=10;return}const td=document.createElement("td");td.className="pipeline-gp-cell";td.innerHTML=pipelineGpHtml(r);tr.insertBefore(td,tr.children[4]||null)})}
+const pipelineV75=pipeline;
+pipeline=function(){pipelineV75();addPipelineGpColumn()};
+const draftV75=draft;
+draft=function(base){const r=draftV75(base);if(base?.gpFinalLocked!==undefined)r.gpFinalLocked=base.gpFinalLocked;if(r.status==="Closed - WON"&&!isExistingNewLocation(r)&&r.gpFinalLocked===undefined)r.gpFinalLocked=Math.max(0,Number(r.gpApproved)||0);return r};
+const compareV75=compare;
+compare=function(old,r){compareV75(old,r);if(old.gpFinalLocked!==r.gpFinalLocked)event(r,"gpFinalLocked",old.gpFinalLocked,r.gpFinalLocked,"Final annual GP locked at Closed Won")};
+const commitStatusV75=commitStatus;
+commitStatus=async function(record,to,select,data={}){if(to==="Closed - WON"&&!isExistingNewLocation(record)&&approvedGp(record)>0&&record.gpFinalLocked===undefined){record.gpFinalLocked=Math.max(0,Number(record.gpApproved)||0);event(record,"gpFinalLocked",undefined,record.gpFinalLocked,"Final annual GP locked at Closed Won")}return commitStatusV75(record,to,select,data)};
+const gpFormStateV75=gpFormState;
+gpFormState=function(){gpFormStateV75();const base=JSON.parse($("#form")?.dataset.base||"{}"),locked=base.status==="Closed - WON"&&!isExistingNewLocation(base)&&base.gpFinalLocked!==undefined,approved=$("#fGpApproved"),note=$("#gpEntryNote");if(approved&&locked){approved.disabled=true;approved.required=false}if(locked&&note)note.innerHTML=`<b>Final annual GP is locked at ${money(base.gpFinalLocked)}.</b> It was set when this opportunity became Closed Won.`};
+function setupPipelineGpStyles(){document.head.insertAdjacentHTML("beforeend",`<style>.pipeline-gp-cell{min-width:178px}.pipeline-gp{display:grid;gap:2px;line-height:1.18;min-width:160px}.pipeline-gp b{font-size:13px;color:var(--ink)}.pipeline-gp span{font-size:10px;font-weight:800;color:#476072;text-transform:uppercase;letter-spacing:.025em}.pipeline-gp small{font-size:11px;color:var(--muted);white-space:normal}.pipeline-gp.placeholder b{color:#906400}.pipeline-gp.placeholder span{color:#9a7205}.pipeline-gp.excluded b,.pipeline-gp.muted b{color:#627486}.pipeline-gp.excluded span,.pipeline-gp.muted span{color:var(--muted)}@media(max-width:1100px){.pipeline-gp-cell{min-width:164px}}</style>`)}
+setupPipelineGpStyles();
+document.querySelector(".appversion").textContent="V7.5 · Secure cloud";
+async function init(){try{setup();$("#fType").onchange=()=>{checklists(draft(JSON.parse($("#form").dataset.base)));syncTargetInstallAvailability();syncGpExclusion()};setupSaveSafety();await repo.init();const stored=await repo.load();if(stored)state=migrate(stored);else{const old=await repo.legacy();if(old){state=migrate(old);state.records.forEach(r=>r.history.unshift({id:id(),at:iso(),key:"migration",label:"Migrated into Version 3"}));await save("Earlier version imported");pop("Existing Hub data imported")}else state=blankState()}render();bindOpen();$("#saved").textContent="Ready";window.SEHCloudBoot.finish();setTimeout(reminderCheck,700)}catch(error){console.error(error);window.SEHCloudBoot.fail(error?.message||"Please check your connection, then reload Sales Hub.")}}init();
 })();
 </script>
 <style id="v63-section-signposting">
@@ -600,13 +646,15 @@ async function init(){try{setup();setupSaveSafety();await repo.init();const stor
 })();
 </script>
 <script>
-(()=>{const box=document.querySelector('.statusbox');if(box&&!document.querySelector('#cloudLogout')){box.insertAdjacentHTML('beforeend','<button type="button" class="cloud-logout" id="cloudLogout">Sign out</button>');document.querySelector('#cloudLogout').onclick=()=>window.SEHCloudAuth.logout()}document.querySelector('.appversion').textContent='V7.2 · Secure cloud'})();
+(()=>{const box=document.querySelector('.statusbox');if(box&&!document.querySelector('#cloudLogout')){box.insertAdjacentHTML('beforeend','<button type="button" class="cloud-logout" id="cloudLogout">Sign out</button>');document.querySelector('#cloudLogout').onclick=()=>window.SEHCloudAuth.logout()}document.querySelector('.appversion').textContent='V7.5 · Secure cloud'})();
 </script>
 <style id="v72-admin-signposts">
 /* V7.2 — make Backup / Settings easy to scan and show source freshness where work is imported. */
 #page-backup .box.admin-section{border-left:4px solid var(--admin-accent,#65798a);transition:border-color .15s ease}
 #page-backup .box.admin-blue{--admin-accent:#2c78b9;--admin-tint:#e6f1fb}#page-backup .box.admin-teal{--admin-accent:#247b78;--admin-tint:#e3f2f1}#page-backup .box.admin-green{--admin-accent:#268159;--admin-tint:#e5f3eb}#page-backup .box.admin-amber{--admin-accent:#a36b09;--admin-tint:#fff2d9}#page-backup .box.admin-purple{--admin-accent:#7657ad;--admin-tint:#efe9f8}#page-backup .box.admin-red{--admin-accent:#bd4a42;--admin-tint:#fff0ef}#page-backup .box.admin-gray{--admin-accent:#677784;--admin-tint:#edf1f3}
 #page-backup .box.admin-section>h3{display:flex;align-items:center;gap:10px}.admin-section-icon{display:inline-grid;place-items:center;flex:0 0 27px;width:27px;height:27px;border-radius:8px;background:var(--admin-tint);color:var(--admin-accent);font-size:16px;font-weight:900;line-height:1}.import-activity{display:flex;align-items:flex-start;gap:8px;margin:10px 0 12px;padding:9px 11px;border:1px solid #d7e1e7;border-radius:9px;background:#f7fafb;color:#526a7d;font-size:12px;line-height:1.4}.import-activity strong{color:#173a56}.import-activity-icon{color:#247b78;font-size:15px;line-height:1.2}@media(max-width:650px){.import-activity{font-size:11px}}
+.install-not-applicable{opacity:.52;background:#f2f4f5!important;border-color:#d9e0e4!important}.install-not-applicable input,.install-not-applicable button{cursor:not-allowed!important}.pricing-only-install-note{display:block;margin-top:8px;color:#657584!important;font-weight:700}.pricing-only-install-note.hidden{display:none}
+.gp-excluded{opacity:.62;border-left-color:#7c8892!important}.gp-excluded .sectiontitle{background:#f1f3f4!important}.gp-excluded .gpentry{background:#eef2f4!important;border-left-color:#7c8892!important}
 </style>
 </body>
 </html>
