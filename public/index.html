@@ -70,7 +70,7 @@ input,select,textarea{width:100%;border:1px solid #c9c5bb;border-radius:7px;back
 </head>
 <body class="cloud-booting">
 <div class="shell">
-<header class="top"><div class="topline"><div class="brand"><div class="mark">SE</div><div><h1>Sales Execution Hub</h1><p>Execute. Unblock. Advance.</p><div class="goldline">Work <strong>GOLD</strong>: <b>G</b>reet &nbsp;•&nbsp; <b>O</b>wn &nbsp;•&nbsp; <b>L</b>eave It Better &nbsp;•&nbsp; <b>D</b>efend</div></div></div><div class="statusbox"><div class="saved" id="saved">Starting…</div><div class="appversion">V8.1.2 · Secure cloud</div></div></div>
+<header class="top"><div class="topline"><div class="brand"><div class="mark">SE</div><div><h1>Sales Execution Hub</h1><p>Execute. Unblock. Advance.</p><div class="goldline">Work <strong>GOLD</strong>: <b>G</b>reet &nbsp;•&nbsp; <b>O</b>wn &nbsp;•&nbsp; <b>L</b>eave It Better &nbsp;•&nbsp; <b>D</b>efend</div></div></div><div class="statusbox"><div class="saved" id="saved">Starting…</div><div class="appversion">V8.3.0 · Secure cloud</div></div></div>
 <nav class="nav"><button class="active" data-page="today">My Day</button><button data-page="pipeline">Pipeline</button><button data-page="reports">Reports</button><button data-page="backup">Backup / Settings</button></nav></header>
 <main>
 <section class="page active" id="page-today"><div class="pagehead"><div><h2>My Day</h2><p>The work that needs movement now.</p></div><button class="btn" data-add>+ Add opportunity</button></div><aside class="daily-focus" id="dailyFocus" aria-live="polite"><span class="daily-focus-label">Daily focus</span><div><q id="dailyFocusQuote"></q><cite id="dailyFocusAuthor"></cite></div></aside><div class="metrics" id="metrics"></div><div class="today">
@@ -154,7 +154,7 @@ window.SEHCloudAuth=(()=>{let pending=null;const overlay=()=>document.querySelec
 </script>
 <script>
 (()=>{"use strict";
-const VERSION="8.1.2",DB="sales_execution_hub_v3",V2KEY="sales_execution_hub_v2",V1KEY="sales_execution_hub_v1",LEGACY="royalcup_pipeline_tracker_v2";
+const VERSION="8.3.0",DB="sales_execution_hub_v3",V2KEY="sales_execution_hub_v2",V1KEY="sales_execution_hub_v1",LEGACY="royalcup_pipeline_tracker_v2";
 const L={status:["Not Started","Active","Stalled - Unresponsive","Stalled - Internal","Stalled - External","Closed - WON","Closed - LOST","On Hold"],type:["New - Equipment","New - Pricing Only","Existing - New","Existing - New Location","Existing - Swap","Existing - Pricing Only"],response:["Highly Responsive","Normal","Slow","Email Only","Phone Only","Text Only","Hard to Reach","Unresponsive"],c4c:["Not Entered","Entered"],crf:["N/A","Not Started","Started","Submitted","Time Exception Internal","Rework Needed","Approved"],credit:["N/A","Sent - Not Received Back","Time Exception (>3 days)","Received","Missing Data - Requested Update"],agreement:["Not Started","Started","Sent to Legal","Sent to Customer","Time Exception Internal","Time Exception External (>2 Days)","Rework Needed","Received and Executed","Master Agreement Applies"],powerbi:["Not Started","Is on Report","Is not on Report"]};
 const INSTALL=["RSD Connected","RSD Initial Deliver Conveyed","Site Survey or Pictures","RSD to Customer Intro","Install Scheduled","Install Conveyed to Customer","Install Complete"],RAM=["Handoff details complete","Handoff call complete","Customer introduction complete","Primary ownership transferred"],HOLD_REASONS=["Customer timing","Budget or funding","Site / construction delay","Seasonal or scheduled opening","Contract / legal","Internal equipment or supply constraint","Internal capacity / installation constraint","Strategic decision","Other"];
 const IMPORT_FIELDS=[
@@ -596,7 +596,7 @@ function salesSegmentUsage(key){return state.records.filter(record=>record.campa
 async function editSalesSegment(key){const segment=state.settings.campaigns.find(item=>item.id===key);if(!segment)return;const proposed=prompt("Edit the Sales Segment name:",segment.name);if(proposed===null)return;const name=proposed.trim();if(!name)return pop("Sales Segment name cannot be blank.");if(state.settings.campaigns.some(item=>item.id!==key&&item.name.toLowerCase()===name.toLowerCase()))return pop("That Sales Segment already exists.");const previous=segment.name;segment.name=name;try{await save("Sales Segment updated");render();pop("Sales Segment updated")}catch(error){segment.name=previous;render();pop("Sales Segment could not be updated. Try again.")}}
 async function deleteSalesSegment(key){const segment=state.settings.campaigns.find(item=>item.id===key);if(!segment)return;const linked=salesSegmentUsage(key),message=linked.length?`Delete “${segment.name}”? It is assigned to ${linked.length} ${linked.length===1?"opportunity":"opportunities"}. Those opportunities will remain, but their Sales Segment assignment will be cleared.`:`Delete “${segment.name}” from Sales Segments?`;if(!confirm(message))return;const previousCampaigns=state.settings.campaigns.slice(),previousAssignments=linked.map(record=>[record,record.campaignId]);state.settings.campaigns=state.settings.campaigns.filter(item=>item.id!==key);linked.forEach(record=>{record.campaignId="";event(record,"campaignId",key,"","Sales Segment deleted; assignment cleared")});try{await save("Sales Segment deleted");render();pop("Sales Segment deleted")}catch(error){state.settings.campaigns=previousCampaigns;previousAssignments.forEach(([record,value])=>record.campaignId=value);render();pop("Sales Segment was not deleted because the cloud save did not complete.")}}
 renderCampaigns=function(){const c=state.settings.campaigns;$("#campaignList").innerHTML=c.length?c.slice().sort((a,b)=>(a.active===false)-(b.active===false)||a.name.localeCompare(b.name)).map(x=>`<div class="campaignrow${x.active===false?" archived":""}"><div><b>${esc(x.name)}</b><small>${esc(x.type)} · ${state.records.filter(r=>r.campaignId===x.id).length} opportunities${x.externalRep?.name?" · Default rep: "+esc(x.externalRep.name):""}</small></div><span class="tag ${x.active===false?"gray":"green"}">${x.active===false?"Archived":"Active"}</span><button class="btn light small" data-campaign-rep="${x.id}">Default rep</button><button class="btn light small" data-segment-edit="${x.id}">Edit</button><button class="btn light small" data-campaign-toggle="${x.id}">${x.active===false?"Restore":"Archive"}</button><button class="btn danger small" data-segment-delete="${x.id}">Delete</button></div>`).join(""):`<div class="empty">No Sales Segments, campaigns, or groups defined yet.</div>`;$$('[data-campaign-rep]').forEach(button=>button.onclick=()=>openCampaignRep(button.dataset.campaignRep));$$('[data-segment-edit]').forEach(button=>button.onclick=()=>editSalesSegment(button.dataset.segmentEdit));$$('[data-segment-delete]').forEach(button=>button.onclick=()=>deleteSalesSegment(button.dataset.segmentDelete));$$('[data-campaign-toggle]').forEach(button=>button.onclick=async()=>{const item=c.find(value=>value.id===button.dataset.campaignToggle);if(!item)return;item.active=item.active===false;await save(item.active?"Sales Segment restored":"Sales Segment archived");render();pop(item.active?"Sales Segment restored":"Sales Segment archived")})};
-document.querySelector(".appversion").textContent="V8.1.2 · Secure cloud";
+document.querySelector(".appversion").textContent="V8.3.0 · Secure cloud";
 $("#saveTheme").onclick=async()=>{const dailyFocus=$("#dailyFocusEnabled")?.checked!==false;state.settings.appearance={...(state.settings.appearance||{}),theme:$("#themeSelect").value,dailyFocus};applyTheme(state.settings.appearance.theme);window.renderDailyFocus?.(dailyFocus);await save("Appearance saved");pop("Appearance saved")};
 async function init(){try{setup();$("#fType").onchange=()=>{const current=draft(JSON.parse($("#form").dataset.base));checklists(current);syncTargetInstallAvailability();syncGpExclusion();updateDeliveryWorkflow(current)};setupSaveSafety();await repo.init();const stored=await repo.load();if(stored)state=migrate(stored);else{const old=await repo.legacy();if(old){state=migrate(old);state.records.forEach(r=>r.history.unshift({id:id(),at:iso(),key:"migration",label:"Migrated into Version 3"}));await save("Earlier version imported");pop("Existing Hub data imported")}else state=blankState()}render();bindOpen();$("#saved").textContent="Ready";window.SEHCloudBoot.finish();if(repo.equipmentLoadWarning)setTimeout(()=>pop("Sales Hub loaded. The saved ESR snapshot was temporarily unavailable; refresh before using Re-match saved ESR."),350);setTimeout(reminderCheck,700)}catch(error){console.error(error);window.SEHCloudBoot.fail(error?.message||"Please check your connection, then reload Sales Hub.")}}init();
 })();
@@ -852,11 +852,11 @@ renderDailyFocus(document.querySelector("#dailyFocusEnabled")?.checked!==false);
   const launch=()=>{decorate(); document.querySelector('#fDue')?.addEventListener('input',syncAttention);};
   new MutationObserver(()=>setTimeout(decorate,0)).observe(document.querySelector('#scrim'),{attributes:true,attributeFilter:['class']});
   setTimeout(launch,0);
-  document.querySelector('.appversion').textContent='V8.1.2 · Secure cloud';
+  document.querySelector('.appversion').textContent='V8.3.0 · Secure cloud';
 })();
 </script>
 <script>
-(()=>{const box=document.querySelector('.statusbox');if(box&&!document.querySelector('#cloudLogout')){box.insertAdjacentHTML('beforeend','<button type="button" class="cloud-logout" id="cloudLogout">Sign out</button>');document.querySelector('#cloudLogout').onclick=()=>window.SEHCloudAuth.logout()}document.querySelector('.appversion').textContent='V8.1.2 · Secure cloud'})();
+(()=>{const box=document.querySelector('.statusbox');if(box&&!document.querySelector('#cloudLogout')){box.insertAdjacentHTML('beforeend','<button type="button" class="cloud-logout" id="cloudLogout">Sign out</button>');document.querySelector('#cloudLogout').onclick=()=>window.SEHCloudAuth.logout()}document.querySelector('.appversion').textContent='V8.3.0 · Secure cloud'})();
 </script>
 <style id="v72-admin-signposts">
 /* V7.2 — make Backup / Settings easy to scan and show source freshness where work is imported. */
@@ -866,5 +866,205 @@ renderDailyFocus(document.querySelector("#dailyFocusEnabled")?.checked!==false);
 .install-not-applicable{opacity:.52;background:#f2f4f5!important;border-color:#d9e0e4!important}.install-not-applicable input,.install-not-applicable button{cursor:not-allowed!important}.pricing-only-install-note{display:block;margin-top:8px;color:#657584!important;font-weight:700}.pricing-only-install-note.hidden{display:none}
 .gp-excluded{opacity:.62;border-left-color:#7c8892!important}.gp-excluded .sectiontitle{background:#f1f3f4!important}.gp-excluded .gpentry{background:#eef2f4!important;border-left-color:#7c8892!important}
 </style>
+<style id="v82-equipment-deduplication">
+.equipment-source-list{display:block;margin-top:3px;color:#667887;font-size:11px;line-height:1.25}.equipment-merged{display:inline-block;margin-top:5px;padding:3px 7px;border-radius:999px;background:#e8f3f2;color:#176b68;font-size:10px;font-weight:850}.equipment-duplicate-panel{margin:0 0 12px;padding:12px;border:1px solid #e5bd70;border-left:5px solid #b77708;border-radius:10px;background:#fff8e8}.equipment-duplicate-panel>strong{display:block;color:#805203;margin-bottom:4px}.equipment-duplicate-item{margin-top:9px;padding-top:9px;border-top:1px solid #eed7a8}.equipment-duplicate-item:first-of-type{border-top:0}.equipment-duplicate-item p{margin:0 0 7px;color:#604d2b;font-size:12px}.equipment-duplicate-actions{display:flex;gap:6px;flex-wrap:wrap}.equipment-duplicate-actions .btn{padding:6px 9px;font-size:11px}.equipment-excluded-note{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:0 0 10px;padding:9px 11px;border:1px solid #ccd7de;border-radius:9px;background:#f4f7f8;color:#526675;font-size:12px}.equipment-dedupe-summary{margin-top:7px;padding-top:7px;border-top:1px solid rgba(36,123,120,.2);color:#176b68;font-weight:750}
+@media(max-width:650px){.equipment-duplicate-actions .btn{width:100%}.equipment-excluded-note{align-items:flex-start;flex-direction:column}}
+</style>
+<script>
+/* V8.2 — merge rollover copies found on multiple ESR tabs and flag only genuinely
+   separate request numbers for possible duplicate funding review. */
+(()=>{
+  let equipmentDedupeStats={raw:0,merged:0,groups:0};
+  const textKey=value=>cleanHeader(value||"");
+  const rowSheet=row=>String(row.sourceSheet||row.source||"Unknown tab").trim()||"Unknown tab";
+  const rowIdentity=row=>{
+    const customer=normalizeEcc(row.customerNumber)||matchName(row.customerName);
+    const request=normalizeEcc(row.requestNumber)||textKey(row.requestNumber);
+    const material=textKey(row.material)||textKey(row.description);
+    const quantity=Number(row.qtyOrdered)||0;
+    return customer&&request&&material?[customer,request,material,quantity].join("|"):"";
+  };
+  const usefulScore=row=>{
+    const year=Math.max(0,...(rowSheet(row).match(/20\d{2}/g)||[]).map(Number));
+    const progress=(equipmentShipped(row)?8:0)+(equipmentFunded(row)?4:0)+(Number(row.techChecked)||0)+(Number(row.qtyIssued)||0);
+    const filled=[row.fundedDate,row.shipping,row.goodsIssueDate,row.deliveryNote,row.notes,row.description].filter(Boolean).length;
+    return year*100+progress*10+filled;
+  };
+  const uniqueText=(rows,key)=>[...new Set(rows.map(row=>String(row[key]||"").trim()).filter(Boolean))];
+  function mergeCrossTabRows(rows,trackStats=true){
+    const passthrough=[],groups=new Map();
+    rows.forEach((row,index)=>{
+      const key=rowIdentity(row);
+      if(!key){passthrough.push({index,row:{...row,sourceSheets:[rowSheet(row)]}});return}
+      if(!groups.has(key))groups.set(key,{index,bySheet:new Map()});
+      const group=groups.get(key),sheet=rowSheet(row);
+      if(!group.bySheet.has(sheet))group.bySheet.set(sheet,[]);
+      group.bySheet.get(sheet).push(row);
+    });
+    const output=[...passthrough];let merged=0,mergedGroups=0;
+    groups.forEach(group=>{
+      const sheets=[...group.bySheet.keys()],count=Math.max(...[...group.bySheet.values()].map(list=>list.length));
+      for(let occurrence=0;occurrence<count;occurrence++){
+        const variants=sheets.map(sheet=>group.bySheet.get(sheet)[occurrence]).filter(Boolean);
+        const preferred=variants.slice().sort((a,b)=>usefulScore(b)-usefulScore(a))[0];
+        const sources=[...new Set(variants.flatMap(row=>Array.isArray(row.sourceSheets)?row.sourceSheets:[rowSheet(row)]))];
+        const notes=uniqueText(variants,"notes"),shipping=variants.find(equipmentShipped)?.shipping||preferred.shipping;
+        const mergedRow={...preferred,sourceSheets:sources,sourceSheet:sources.join(" + "),duplicateAcrossTabs:Math.max(Number(preferred.duplicateAcrossTabs)||0,variants.length-1,sources.length-1),sourceRows:variants.flatMap(row=>Array.isArray(row.sourceRows)?row.sourceRows:[{sheet:rowSheet(row),row:row.sourceRow}]),notes:notes.join(" | "),shipping,fundedDate:uniqueText(variants,"fundedDate").sort().pop()||preferred.fundedDate,goodsIssueDate:uniqueText(variants,"goodsIssueDate").sort().pop()||preferred.goodsIssueDate,qtyOrdered:Math.max(...variants.map(row=>Number(row.qtyOrdered)||0)),qtyIssued:Math.max(...variants.map(row=>Number(row.qtyIssued)||0)),techChecked:Math.max(...variants.map(row=>Number(row.techChecked)||0))};
+        output.push({index:group.index+occurrence/1000,row:mergedRow});
+        if(variants.length>1){merged+=variants.length-1;mergedGroups++}
+      }
+    });
+    if(trackStats)equipmentDedupeStats={raw:rows.length,merged,groups:mergedGroups};
+    return output.sort((a,b)=>a.index-b.index).map(item=>item.row);
+  }
+  const duplicateSettings=()=>{
+    if(!state.settings.equipmentDuplicateDecisions||typeof state.settings.equipmentDuplicateDecisions!=="object")state.settings.equipmentDuplicateDecisions={};
+    if(!state.settings.equipmentExcludedRequests||typeof state.settings.equipmentExcludedRequests!=="object")state.settings.equipmentExcludedRequests={};
+    return{decisions:state.settings.equipmentDuplicateDecisions,excluded:state.settings.equipmentExcludedRequests};
+  };
+  const requestKey=(recordId,siteId,request)=>[recordId||"",siteId||"",normalizeEcc(request)||textKey(request)].join("|");
+  const isExcluded=row=>!!duplicateSettings().excluded[requestKey(row.recordId,row.rolloutSiteId,row.requestNumber)];
+  equipmentRowsFor=function(record){return mergeCrossTabRows((state.equipmentRows||[]).filter(row=>row.recordId===record.id&&!isExcluded(row)),false)};
+  function suspiciousDuplicateGroups(rows){
+    const groups=new Map();
+    rows.forEach(row=>{
+      if(!equipmentFunded(row))return;
+      const material=textKey(row.material)||textKey(row.description);if(!material)return;
+      const key=[row.recordId||"",row.rolloutSiteId||"",material].join("|");
+      if(!groups.has(key))groups.set(key,{key,material:row.material||row.description||"Equipment",rows:[]});
+      groups.get(key).rows.push(row);
+    });
+    return[...groups.values()].map(group=>{
+      const requests=[...new Set(group.rows.map(row=>normalizeEcc(row.requestNumber)||String(row.requestNumber||"").trim()).filter(Boolean))];
+      if(requests.length<2)return null;
+      let suspicious=false;
+      for(let i=0;i<group.rows.length&&!suspicious;i++)for(let j=i+1;j<group.rows.length;j++){
+        const a=group.rows[i],b=group.rows[j],ar=normalizeEcc(a.requestNumber),br=normalizeEcc(b.requestNumber);if(!ar||!br||ar===br)continue;
+        if(a.fundedDate&&b.fundedDate){const gap=Math.abs(days(date(a.fundedDate),date(b.fundedDate)));if(gap<=45)suspicious=true}
+        else if(!a.qtyIssued&&!b.qtyIssued)suspicious=true;
+      }
+      const decisionKey=group.key+"|"+requests.slice().sort().join(",");
+      return suspicious&&!duplicateSettings().decisions[decisionKey]?{...group,requests,decisionKey}:null;
+    }).filter(Boolean);
+  }
+  const loadEquipmentRowsV82=loadEquipmentRows;
+  loadEquipmentRows=function(){
+    const selected=$("#equipmentSheet").value,all=$("#includePendingEquipment").checked,names=all?equipmentReadableSheets:(selected?[selected]:[]);
+    equipmentActiveSheets=names;
+    equipmentDraftRows=mergeCrossTabRows(names.flatMap(parseEquipmentTab));
+    prepareEquipmentGroups();
+  };
+  const renderEquipmentPreviewV82=renderEquipmentPreview;
+  renderEquipmentPreview=function(){renderEquipmentPreviewV82();if(equipmentDedupeStats.merged){$("#equipmentPreviewSummary").insertAdjacentHTML("beforeend",`<div class="equipment-dedupe-summary">${equipmentDedupeStats.merged} repeated cross-tab line${equipmentDedupeStats.merged===1?" was":"s were"} combined into ${equipmentDedupeStats.groups} equipment record${equipmentDedupeStats.groups===1?"":"s"}. Same-tab lines were preserved.</div>`)}};
+  const rematchStoredEquipmentV82=rematchStoredEquipment;
+  rematchStoredEquipment=function(){
+    const saved=state.equipmentSourceRows||[];if(!saved.length)return pop("Upload the current Equipment Status Report once first. Future re-matches will use the saved snapshot.");
+    equipmentBook=null;equipmentFileName=state.equipmentSourceInfo?.file||"Stored Equipment Status Report";equipmentReadableSheets=[...(state.equipmentSourceInfo?.sheets||[])];equipmentActiveSheets=equipmentReadableSheets;equipmentDraftRows=mergeCrossTabRows(saved.map(row=>({...row})));$("#equipmentFileInfo").textContent=`Re-matching saved snapshot: ${equipmentFileName}. ${equipmentDraftRows.length.toLocaleString()} equipment lines will be matched after cross-tab repeats are combined.`;$("#equipmentSheet").innerHTML=`<option>Saved snapshot</option>`;$("#equipmentSheet").disabled=true;$("#includePendingEquipment").checked=true;$("#includePendingEquipment").disabled=true;$("#equipmentWorkspace").classList.remove("hidden");$("#equipmentImportSummary").classList.add("hidden");$("#equipmentBackupConfirmed").checked=false;prepareEquipmentGroups();
+  };
+  const runEquipmentImportV82=runEquipmentImport;
+  runEquipmentImport=async function(){
+    const before={...equipmentDedupeStats},previousImport=state.settings.equipmentImportHistory?.[0]?.at||null;
+    await runEquipmentImportV82();
+    const latest=state.settings.equipmentImportHistory?.[0],imported=!!latest&&latest.at!==previousImport;if(imported&&before.raw){latest.rawLines=before.raw;latest.duplicatesMerged=before.merged;latest.attached=(state.equipmentRows||[]).length;await save("ESR duplicate summary saved")}
+    const summary=$("#equipmentImportSummary");if(imported&&summary&&before.merged)summary.insertAdjacentHTML("beforeend",`<div class="equipment-dedupe-summary">${before.merged} cross-tab repeat${before.merged===1?"":"s"} merged automatically.</div>`);
+  };
+  renderEquipmentStatus=function(record){
+    const rows=equipmentRowsFor(record),funded=rows.filter(equipmentFunded).length,shipped=rows.filter(equipmentShipped).length,checked=rows.filter(row=>equipmentTechState(row)==="Checked in by tech").length,duplicates=suspiciousDuplicateGroups(rows),settings=duplicateSettings(),excludedCount=Object.keys(settings.excluded).filter(key=>key.startsWith(record.id+"|")).length;
+    $("#equipmentProgress").textContent=rows.length?`${rows.length} line${rows.length===1?"":"s"} · ${checked} checked in`:`No equipment status`;
+    if(!rows.length&&!excludedCount){$("#equipmentStatusContent").innerHTML=`<div class="equipmentempty">No equipment status is linked yet. Refresh the Equipment Status Report in Backup and Settings.</div>`;return}
+    const excluded=excludedCount?`<div class="equipment-excluded-note"><span>${excludedCount} ESR request${excludedCount===1?" is":"s are"} excluded locally. The office spreadsheet was not changed.</span><button type="button" class="btn light small" data-equipment-action="restore">Restore excluded</button></div>`:"";
+    const alerts=duplicates.length?`<div class="equipment-duplicate-panel"><strong>Possible duplicate funding — verify with the Equipment Team</strong><span class="fine">These are different ESR request numbers for the same material within a short funding window. Nothing has been removed automatically.</span>${duplicates.map(group=>`<div class="equipment-duplicate-item"><p><b>${esc(group.material)}</b> appears under ESR ${group.requests.map(esc).join(" and ")}.</p><div class="equipment-duplicate-actions"><button type="button" class="btn light small" data-equipment-action="keep" data-decision="${esc(group.decisionKey)}">Keep both requests</button>${group.requests.map(request=>`<button type="button" class="btn light small" data-equipment-action="exclude" data-request="${esc(request)}">Exclude ESR ${esc(request)}</button>`).join("")}</div></div>`).join("")}</div>`:"";
+    const table=rows.length?`<div class="equipmentsummary"><div class="equipmentmetric"><span>Lines</span><b>${rows.length}</b></div><div class="equipmentmetric"><span>Funded</span><b>${funded}</b></div><div class="equipmentmetric"><span>Shipped</span><b>${shipped}</b></div><div class="equipmentmetric"><span>Checked in by tech</span><b>${checked}</b></div></div><div class="tablewrap" style="margin-top:10px"><table class="equipmenttable"><thead><tr><th>Equipment request #</th><th>Funding</th><th>Shipping</th><th>Tech check-in</th><th>Equipment</th><th>Notes</th></tr></thead><tbody>${rows.slice().sort((a,b)=>String(b.fundedDate||b.goodsIssueDate).localeCompare(String(a.fundedDate||a.goodsIssueDate))).map(row=>{const sources=Array.isArray(row.sourceSheets)&&row.sourceSheets.length?row.sourceSheets:[row.sourceSheet||row.orderType||row.source].filter(Boolean);return`<tr><td><b>${esc(row.requestNumber||"—")}</b><span class="equipment-source-list">${sources.map(esc).join(" · ")}</span>${row.duplicateAcrossTabs?`<span class="equipment-merged">Merged from ${sources.length} tabs</span>`:""}</td><td>${equipmentFunded(row)?tag(row.fundedDate?"Funded "+fmt(row.fundedDate):"Funded","green"):tag("Pending approval","amber")}</td><td>${tag(row.shipping||"Pending",equipmentShipped(row)?"green":"amber")}${row.goodsIssueDate?`<br><span class="fine">Issued ${fmt(row.goodsIssueDate)}</span>`:""}</td><td>${tag(equipmentTechState(row),equipmentTechState(row)==="Checked in by tech"?"green":row.techChecked?"amber":"gray")}<br><span class="fine">${row.techChecked||0}/${row.qtyIssued||0} issued</span></td><td><b>${esc(row.material||"Equipment")}</b><br><span class="fine">${esc(row.description||"")}</span></td><td>${esc(row.notes||"—")}</td></tr>`}).join("")}</tbody></table></div>`:"";
+    const source=state.equipmentSourceInfo?.sheets?.length?` · Tabs: ${state.equipmentSourceInfo.sheets.map(esc).join(", ")}`:"";
+    $("#equipmentStatusContent").innerHTML=excluded+alerts+table+`<p class="fine" style="margin:9px 0 0">Last equipment refresh: ${state.equipmentUpdatedAt?fmtTime(state.equipmentUpdatedAt):"Unknown"}${source}</p>`;
+    $("#equipmentStatusContent").onclick=async event=>{
+      const button=event.target.closest("[data-equipment-action]");if(!button)return;
+      if(button.dataset.equipmentAction==="keep"){settings.decisions[button.dataset.decision]="keep";await save("ESR duplicate reviewed — keep both");renderEquipmentStatus(record);pop("Both ESR requests kept")}
+      if(button.dataset.equipmentAction==="exclude"){const request=button.dataset.request;if(!confirm(`Exclude ESR ${request} from this customer view? This only changes the Hub; it does not delete anything from the office ESR.`))return;rows.filter(row=>(normalizeEcc(row.requestNumber)||String(row.requestNumber||"").trim())===request).forEach(row=>settings.excluded[requestKey(row.recordId,row.rolloutSiteId,row.requestNumber)]=true);await save("ESR request excluded locally");renderEquipmentStatus(record);pop(`ESR ${request} excluded locally`)}
+      if(button.dataset.equipmentAction==="restore"){if(!confirm("Restore all locally excluded ESR requests for this customer?"))return;Object.keys(settings.excluded).filter(key=>key.startsWith(record.id+"|")).forEach(key=>delete settings.excluded[key]);await save("Excluded ESR requests restored");renderEquipmentStatus(record);pop("Excluded ESR requests restored")}
+    };
+  };
+  const rematchButton=$("#rematchEquipment"),sheet=$("#equipmentSheet"),all=$("#includePendingEquipment"),run=$("#runEquipmentImport");if(rematchButton)rematchButton.onclick=rematchStoredEquipment;if(sheet)sheet.onchange=loadEquipmentRows;if(all)all.onchange=loadEquipmentRows;if(run)run.onclick=runEquipmentImport;
+  document.querySelector(".appversion").textContent="V8.3.0 · Secure cloud";
+})();
+</script>
+<style id="v83-equipment-email-copy">
+.equipment-copybar{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:0 0 10px;padding:9px 11px;border:1px solid #cfdbe2;border-radius:10px;background:#f6f9fa}.equipment-copybar-text{color:#526879;font-size:12px;line-height:1.35}.equipment-copybar .btn{flex:0 0 auto}.equipment-copybar .btn.is-copied{border-color:#24825a;background:#e3f3ea;color:#176a48}.equipment-copybar .btn.is-error{border-color:#c94c45;background:#fff0ef;color:#a82e28}
+@media(max-width:650px){.equipment-copybar{align-items:stretch;flex-direction:column}.equipment-copybar .btn{width:100%}}
+</style>
+<script>
+/* V8.3 — one-click Outlook-friendly equipment summary copy with plain-text fallback. */
+(()=>{
+  const equipmentStatusV83=renderEquipmentStatus;
+  const clean=value=>String(value==null?"":value).replace(/\s+/g," ").trim();
+  const emailEsc=value=>esc(clean(value));
+  const sortedEquipmentRows=record=>equipmentRowsFor(record).slice().sort((a,b)=>String(b.fundedDate||b.goodsIssueDate).localeCompare(String(a.fundedDate||a.goodsIssueDate)));
+  const fundingText=row=>equipmentFunded(row)?(row.fundedDate?"Funded "+fmt(row.fundedDate):"Funded"):"Pending approval";
+  const shippingText=row=>[clean(row.shipping)||"Pending",row.goodsIssueDate?"Issued "+fmt(row.goodsIssueDate):""].filter(Boolean).join(" — ");
+  const techText=row=>equipmentTechState(row)+" — "+(Number(row.techChecked)||0)+"/"+(Number(row.qtyIssued)||0)+" issued";
+  const equipmentText=row=>[clean(row.material)||"Equipment",clean(row.description)].filter(Boolean).join(" — ");
+  const sourceText=row=>{
+    const sources=Array.isArray(row.sourceSheets)&&row.sourceSheets.length?row.sourceSheets:[row.sourceSheet||row.orderType||row.source].filter(Boolean);
+    return sources.map(clean).filter(Boolean).join(" · ");
+  };
+  function equipmentEmailContent(record){
+    const rows=sortedEquipmentRows(record),funded=rows.filter(equipmentFunded).length,shipped=rows.filter(equipmentShipped).length,checked=rows.filter(row=>equipmentTechState(row)==="Checked in by tech").length;
+    const warning=$("#equipmentStatusContent .equipment-duplicate-panel>strong")?.textContent?.trim()||"";
+    const excluded=$("#equipmentStatusContent .equipment-excluded-note span")?.textContent?.trim()||"";
+    const refreshed=state.equipmentUpdatedAt?fmtTime(state.equipmentUpdatedAt):"Unknown";
+    const identity=[record.ecc?"ECC / Customer # "+record.ecc:"",record.type||""].filter(Boolean).join(" · ");
+    const metric=(label,value)=>'<td style="width:25%;padding:10px 12px;border:1px solid #cbd8de;background:#f7fafb"><div style="font-size:11px;text-transform:uppercase;letter-spacing:.04em;color:#536b79">'+emailEsc(label)+'</div><div style="font-size:22px;font-weight:700;color:#132f42">'+value+'</div></td>';
+    const cell=value=>'<td style="padding:9px 10px;border:1px solid #d6dfe3;vertical-align:top;font-size:12px;line-height:1.35;color:#1b2e3b">'+value+'</td>';
+    const headings=["Equipment request #","Funding","Shipping","Tech check-in","Equipment","Notes"];
+    const bodyRows=rows.map(row=>{
+      const source=sourceText(row);
+      const request='<strong>'+emailEsc(row.requestNumber||"—")+'</strong>'+(source?'<br><span style="color:#667887;font-size:10px">'+emailEsc(source)+'</span>':"");
+      const equipment='<strong>'+emailEsc(row.material||"Equipment")+'</strong>'+(row.description?'<br><span style="color:#667887">'+emailEsc(row.description)+'</span>':"");
+      return "<tr>"+cell(request)+cell(emailEsc(fundingText(row)))+cell(emailEsc(shippingText(row)))+cell(emailEsc(techText(row)))+cell(equipment)+cell(emailEsc(row.notes||"—"))+"</tr>";
+    }).join("");
+    const html='<div style="font-family:Arial,Helvetica,sans-serif;color:#172d3c;max-width:1100px"><div style="padding:14px 16px;background:#08697b;color:#fff"><div style="font-size:20px;font-weight:700">'+emailEsc(record.account||"Equipment Status")+'</div>'+(identity?'<div style="margin-top:3px;font-size:12px">'+emailEsc(identity)+"</div>":"")+'<div style="margin-top:3px;font-size:11px">Equipment Status · Refreshed '+emailEsc(refreshed)+'</div></div><table role="presentation" cellspacing="0" cellpadding="0" style="width:100%;border-collapse:collapse;margin:10px 0"><tr>'+metric("Lines",rows.length)+metric("Funded",funded)+metric("Shipped",shipped)+metric("Checked in by tech",checked)+'</tr></table>'+(warning?'<div style="margin:8px 0;padding:9px 11px;border-left:4px solid #b77708;background:#fff4d8;color:#704802;font-size:12px;font-weight:700">'+emailEsc(warning)+"</div>":"")+(excluded?'<div style="margin:8px 0;padding:8px 10px;background:#f0f3f5;color:#526675;font-size:11px">'+emailEsc(excluded)+"</div>":"")+'<table cellspacing="0" cellpadding="0" style="width:100%;border-collapse:collapse"><thead><tr>'+headings.map(label=>'<th style="padding:9px 10px;border:1px solid #075d6c;background:#08697b;color:#fff;text-align:left;font-size:11px;text-transform:uppercase">'+label+"</th>").join("")+"</tr></thead><tbody>"+bodyRows+'</tbody></table><div style="margin-top:8px;color:#667887;font-size:10px">Copied from Sales Execution Hub V'+VERSION+"</div></div>";
+    const textRows=rows.map(row=>[[clean(row.requestNumber)||"—",sourceText(row)].filter(Boolean).join(" — "),fundingText(row),shippingText(row),techText(row),equipmentText(row),clean(row.notes)||"—"].join("\t"));
+    const text=[(record.account||"Equipment Status")+(identity?" — "+identity:""),"Equipment Status · Refreshed "+refreshed,"Lines: "+rows.length+" | Funded: "+funded+" | Shipped: "+shipped+" | Checked in by tech: "+checked,warning,excluded,"",headings.join("\t")].concat(textRows).filter((value,index)=>index===5||value!=="").join("\n");
+    return{html,text};
+  }
+  async function writeEquipmentClipboard(content){
+    if(navigator.clipboard&&window.ClipboardItem){
+      await navigator.clipboard.write([new ClipboardItem({"text/html":new Blob([content.html],{type:"text/html"}),"text/plain":new Blob([content.text],{type:"text/plain"})})]);
+      return;
+    }
+    const onCopy=event=>{event.preventDefault();event.clipboardData.setData("text/html",content.html);event.clipboardData.setData("text/plain",content.text)};
+    document.addEventListener("copy",onCopy,{once:true});
+    if(!document.execCommand("copy")){
+      document.removeEventListener("copy",onCopy);
+      if(navigator.clipboard)await navigator.clipboard.writeText(content.text);
+      else throw new Error("Clipboard unavailable");
+    }
+  }
+  async function copyEquipmentForEmail(record,button){
+    const original=button.textContent;
+    button.disabled=true;
+    try{
+      await writeEquipmentClipboard(equipmentEmailContent(record));
+      button.textContent="Copied — paste into email";
+      button.classList.add("is-copied");
+      pop("Equipment summary copied — paste it into your email");
+    }catch(error){
+      button.textContent="Copy failed — try again";
+      button.classList.add("is-error");
+      pop("The browser blocked clipboard access. Try the button again and allow clipboard access.");
+    }finally{
+      setTimeout(()=>{button.disabled=false;button.textContent=original;button.classList.remove("is-copied","is-error")},3200);
+    }
+  }
+  renderEquipmentStatus=function(record){
+    equipmentStatusV83(record);
+    const content=$("#equipmentStatusContent"),rows=equipmentRowsFor(record);
+    if(!content||!rows.length)return;
+    content.insertAdjacentHTML("afterbegin",'<div class="equipment-copybar"><span class="equipment-copybar-text">Copy this equipment snapshot directly into Outlook, Teams, or another email app.</span><button type="button" class="btn light small" data-equipment-email-copy>Copy for email</button></div>');
+    content.querySelector("[data-equipment-email-copy]").onclick=event=>copyEquipmentForEmail(record,event.currentTarget);
+  };
+  document.querySelector(".appversion").textContent="V8.3.0 · Secure cloud";
+})();
+</script>
 </body>
 </html>
