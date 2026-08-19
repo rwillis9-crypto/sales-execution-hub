@@ -70,7 +70,7 @@ input,select,textarea{width:100%;border:1px solid #c9c5bb;border-radius:7px;back
 </head>
 <body class="cloud-booting">
 <div class="shell">
-<header class="top"><div class="topline"><div class="brand"><div class="mark">SE</div><div><h1>Sales Execution Hub</h1><p>Execute. Unblock. Advance.</p><div class="goldline">Work <strong>GOLD</strong>: <b>G</b>reet &nbsp;•&nbsp; <b>O</b>wn &nbsp;•&nbsp; <b>L</b>eave It Better &nbsp;•&nbsp; <b>D</b>efend</div></div></div><div class="statusbox"><div class="saved" id="saved">Starting…</div><div class="appversion">V8.3.0 · Secure cloud</div></div></div>
+<header class="top"><div class="topline"><div class="brand"><div class="mark">SE</div><div><h1>Sales Execution Hub</h1><p>Execute. Unblock. Advance.</p><div class="goldline">Work <strong>GOLD</strong>: <b>G</b>reet &nbsp;•&nbsp; <b>O</b>wn &nbsp;•&nbsp; <b>L</b>eave It Better &nbsp;•&nbsp; <b>D</b>efend</div></div></div><div class="statusbox"><div class="saved" id="saved">Starting…</div><div class="appversion">V8.3.1 · Secure cloud</div></div></div>
 <nav class="nav"><button class="active" data-page="today">My Day</button><button data-page="pipeline">Pipeline</button><button data-page="reports">Reports</button><button data-page="backup">Backup / Settings</button></nav></header>
 <main>
 <section class="page active" id="page-today"><div class="pagehead"><div><h2>My Day</h2><p>The work that needs movement now.</p></div><button class="btn" data-add>+ Add opportunity</button></div><aside class="daily-focus" id="dailyFocus" aria-live="polite"><span class="daily-focus-label">Daily focus</span><div><q id="dailyFocusQuote"></q><cite id="dailyFocusAuthor"></cite></div></aside><div class="metrics" id="metrics"></div><div class="today">
@@ -154,7 +154,7 @@ window.SEHCloudAuth=(()=>{let pending=null;const overlay=()=>document.querySelec
 </script>
 <script>
 (()=>{"use strict";
-const VERSION="8.3.0",DB="sales_execution_hub_v3",V2KEY="sales_execution_hub_v2",V1KEY="sales_execution_hub_v1",LEGACY="royalcup_pipeline_tracker_v2";
+const VERSION="8.3.1",DB="sales_execution_hub_v3",V2KEY="sales_execution_hub_v2",V1KEY="sales_execution_hub_v1",LEGACY="royalcup_pipeline_tracker_v2";
 const L={status:["Not Started","Active","Stalled - Unresponsive","Stalled - Internal","Stalled - External","Closed - WON","Closed - LOST","On Hold"],type:["New - Equipment","New - Pricing Only","Existing - New","Existing - New Location","Existing - Swap","Existing - Pricing Only"],response:["Highly Responsive","Normal","Slow","Email Only","Phone Only","Text Only","Hard to Reach","Unresponsive"],c4c:["Not Entered","Entered"],crf:["N/A","Not Started","Started","Submitted","Time Exception Internal","Rework Needed","Approved"],credit:["N/A","Sent - Not Received Back","Time Exception (>3 days)","Received","Missing Data - Requested Update"],agreement:["Not Started","Started","Sent to Legal","Sent to Customer","Time Exception Internal","Time Exception External (>2 Days)","Rework Needed","Received and Executed","Master Agreement Applies"],powerbi:["Not Started","Is on Report","Is not on Report"]};
 const INSTALL=["RSD Connected","RSD Initial Deliver Conveyed","Site Survey or Pictures","RSD to Customer Intro","Install Scheduled","Install Conveyed to Customer","Install Complete"],RAM=["Handoff details complete","Handoff call complete","Customer introduction complete","Primary ownership transferred"],HOLD_REASONS=["Customer timing","Budget or funding","Site / construction delay","Seasonal or scheduled opening","Contract / legal","Internal equipment or supply constraint","Internal capacity / installation constraint","Strategic decision","Other"];
 const IMPORT_FIELDS=[
@@ -596,7 +596,7 @@ function salesSegmentUsage(key){return state.records.filter(record=>record.campa
 async function editSalesSegment(key){const segment=state.settings.campaigns.find(item=>item.id===key);if(!segment)return;const proposed=prompt("Edit the Sales Segment name:",segment.name);if(proposed===null)return;const name=proposed.trim();if(!name)return pop("Sales Segment name cannot be blank.");if(state.settings.campaigns.some(item=>item.id!==key&&item.name.toLowerCase()===name.toLowerCase()))return pop("That Sales Segment already exists.");const previous=segment.name;segment.name=name;try{await save("Sales Segment updated");render();pop("Sales Segment updated")}catch(error){segment.name=previous;render();pop("Sales Segment could not be updated. Try again.")}}
 async function deleteSalesSegment(key){const segment=state.settings.campaigns.find(item=>item.id===key);if(!segment)return;const linked=salesSegmentUsage(key),message=linked.length?`Delete “${segment.name}”? It is assigned to ${linked.length} ${linked.length===1?"opportunity":"opportunities"}. Those opportunities will remain, but their Sales Segment assignment will be cleared.`:`Delete “${segment.name}” from Sales Segments?`;if(!confirm(message))return;const previousCampaigns=state.settings.campaigns.slice(),previousAssignments=linked.map(record=>[record,record.campaignId]);state.settings.campaigns=state.settings.campaigns.filter(item=>item.id!==key);linked.forEach(record=>{record.campaignId="";event(record,"campaignId",key,"","Sales Segment deleted; assignment cleared")});try{await save("Sales Segment deleted");render();pop("Sales Segment deleted")}catch(error){state.settings.campaigns=previousCampaigns;previousAssignments.forEach(([record,value])=>record.campaignId=value);render();pop("Sales Segment was not deleted because the cloud save did not complete.")}}
 renderCampaigns=function(){const c=state.settings.campaigns;$("#campaignList").innerHTML=c.length?c.slice().sort((a,b)=>(a.active===false)-(b.active===false)||a.name.localeCompare(b.name)).map(x=>`<div class="campaignrow${x.active===false?" archived":""}"><div><b>${esc(x.name)}</b><small>${esc(x.type)} · ${state.records.filter(r=>r.campaignId===x.id).length} opportunities${x.externalRep?.name?" · Default rep: "+esc(x.externalRep.name):""}</small></div><span class="tag ${x.active===false?"gray":"green"}">${x.active===false?"Archived":"Active"}</span><button class="btn light small" data-campaign-rep="${x.id}">Default rep</button><button class="btn light small" data-segment-edit="${x.id}">Edit</button><button class="btn light small" data-campaign-toggle="${x.id}">${x.active===false?"Restore":"Archive"}</button><button class="btn danger small" data-segment-delete="${x.id}">Delete</button></div>`).join(""):`<div class="empty">No Sales Segments, campaigns, or groups defined yet.</div>`;$$('[data-campaign-rep]').forEach(button=>button.onclick=()=>openCampaignRep(button.dataset.campaignRep));$$('[data-segment-edit]').forEach(button=>button.onclick=()=>editSalesSegment(button.dataset.segmentEdit));$$('[data-segment-delete]').forEach(button=>button.onclick=()=>deleteSalesSegment(button.dataset.segmentDelete));$$('[data-campaign-toggle]').forEach(button=>button.onclick=async()=>{const item=c.find(value=>value.id===button.dataset.campaignToggle);if(!item)return;item.active=item.active===false;await save(item.active?"Sales Segment restored":"Sales Segment archived");render();pop(item.active?"Sales Segment restored":"Sales Segment archived")})};
-document.querySelector(".appversion").textContent="V8.3.0 · Secure cloud";
+document.querySelector(".appversion").textContent="V8.3.1 · Secure cloud";
 $("#saveTheme").onclick=async()=>{const dailyFocus=$("#dailyFocusEnabled")?.checked!==false;state.settings.appearance={...(state.settings.appearance||{}),theme:$("#themeSelect").value,dailyFocus};applyTheme(state.settings.appearance.theme);window.renderDailyFocus?.(dailyFocus);await save("Appearance saved");pop("Appearance saved")};
 async function init(){try{setup();$("#fType").onchange=()=>{const current=draft(JSON.parse($("#form").dataset.base));checklists(current);syncTargetInstallAvailability();syncGpExclusion();updateDeliveryWorkflow(current)};setupSaveSafety();await repo.init();const stored=await repo.load();if(stored)state=migrate(stored);else{const old=await repo.legacy();if(old){state=migrate(old);state.records.forEach(r=>r.history.unshift({id:id(),at:iso(),key:"migration",label:"Migrated into Version 3"}));await save("Earlier version imported");pop("Existing Hub data imported")}else state=blankState()}render();bindOpen();$("#saved").textContent="Ready";window.SEHCloudBoot.finish();if(repo.equipmentLoadWarning)setTimeout(()=>pop("Sales Hub loaded. The saved ESR snapshot was temporarily unavailable; refresh before using Re-match saved ESR."),350);setTimeout(reminderCheck,700)}catch(error){console.error(error);window.SEHCloudBoot.fail(error?.message||"Please check your connection, then reload Sales Hub.")}}init();
 })();
@@ -852,11 +852,11 @@ renderDailyFocus(document.querySelector("#dailyFocusEnabled")?.checked!==false);
   const launch=()=>{decorate(); document.querySelector('#fDue')?.addEventListener('input',syncAttention);};
   new MutationObserver(()=>setTimeout(decorate,0)).observe(document.querySelector('#scrim'),{attributes:true,attributeFilter:['class']});
   setTimeout(launch,0);
-  document.querySelector('.appversion').textContent='V8.3.0 · Secure cloud';
+  document.querySelector('.appversion').textContent='V8.3.1 · Secure cloud';
 })();
 </script>
 <script>
-(()=>{const box=document.querySelector('.statusbox');if(box&&!document.querySelector('#cloudLogout')){box.insertAdjacentHTML('beforeend','<button type="button" class="cloud-logout" id="cloudLogout">Sign out</button>');document.querySelector('#cloudLogout').onclick=()=>window.SEHCloudAuth.logout()}document.querySelector('.appversion').textContent='V8.3.0 · Secure cloud'})();
+(()=>{const box=document.querySelector('.statusbox');if(box&&!document.querySelector('#cloudLogout')){box.insertAdjacentHTML('beforeend','<button type="button" class="cloud-logout" id="cloudLogout">Sign out</button>');document.querySelector('#cloudLogout').onclick=()=>window.SEHCloudAuth.logout()}document.querySelector('.appversion').textContent='V8.3.1 · Secure cloud'})();
 </script>
 <style id="v72-admin-signposts">
 /* V7.2 — make Backup / Settings easy to scan and show source freshness where work is imported. */
@@ -985,7 +985,7 @@ renderDailyFocus(document.querySelector("#dailyFocusEnabled")?.checked!==false);
     };
   };
   const rematchButton=$("#rematchEquipment"),sheet=$("#equipmentSheet"),all=$("#includePendingEquipment"),run=$("#runEquipmentImport");if(rematchButton)rematchButton.onclick=rematchStoredEquipment;if(sheet)sheet.onchange=loadEquipmentRows;if(all)all.onchange=loadEquipmentRows;if(run)run.onclick=runEquipmentImport;
-  document.querySelector(".appversion").textContent="V8.3.0 · Secure cloud";
+  document.querySelector(".appversion").textContent="V8.3.1 · Secure cloud";
 })();
 </script>
 <style id="v83-equipment-email-copy">
@@ -1063,7 +1063,7 @@ renderDailyFocus(document.querySelector("#dailyFocusEnabled")?.checked!==false);
     content.insertAdjacentHTML("afterbegin",'<div class="equipment-copybar"><span class="equipment-copybar-text">Copy this equipment snapshot directly into Outlook, Teams, or another email app.</span><button type="button" class="btn light small" data-equipment-email-copy>Copy for email</button></div>');
     content.querySelector("[data-equipment-email-copy]").onclick=event=>copyEquipmentForEmail(record,event.currentTarget);
   };
-  document.querySelector(".appversion").textContent="V8.3.0 · Secure cloud";
+  document.querySelector(".appversion").textContent="V8.3.1 · Secure cloud";
 })();
 </script>
 </body>
