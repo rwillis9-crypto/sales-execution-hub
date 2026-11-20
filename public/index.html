@@ -93,7 +93,65 @@ input,select,textarea{width:100%;border:1px solid #c9c5bb;border-radius:7px;back
 #installBoard .install-stack{display:flex;flex-direction:column;gap:10px}#installBoard details.install-card{display:block;overflow:hidden}#installBoard .install-card-head{cursor:pointer;list-style:none;align-items:center}#installBoard .install-card-head::-webkit-details-marker{display:none}#installBoard .install-summ-main{display:flex;align-items:center;gap:12px;min-width:0}#installBoard .install-chevron{font-size:24px;transition:transform .15s;color:var(--gold2)}#installBoard details[open] .install-chevron{transform:rotate(90deg)}#installBoard .install-short{display:flex;flex-direction:column;text-align:right;gap:2px}#installBoard .install-short small{color:var(--muted)}#installBoard .install-expand-label{font-size:11px;color:var(--muted)}#installBoard .install-archive-section{margin-top:30px;padding-top:20px;border-top:3px solid var(--line)}#installBoard .install-archive-heading{margin:0 0 14px}#installBoard .install-archive-heading h3{margin:0;font-size:19px}#installBoard .install-archive-heading p{color:var(--muted);margin:3px 0 0}#installBoard .install-archived{opacity:.87}#installBoard .install-done-control{display:flex;align-items:center;gap:12px;border:1px solid var(--line);border-radius:9px;margin-top:14px;padding:12px;background:var(--greenp);cursor:pointer}#installBoard .install-done-control input{width:20px;height:20px;flex:0 0 20px;accent-color:var(--green)}#installBoard .install-done-control small{display:block;color:var(--muted)}@media(max-width:700px){#installBoard .install-card-head{flex-wrap:wrap}#installBoard .install-short{text-align:left}#installBoard .install-card-actions{flex-wrap:wrap}}
 </style>
 <style>.install-urgent-badge{white-space:normal;max-width:270px;text-align:center}.install-urgent-detail{background:var(--redp);border-left:4px solid var(--red);border-radius:7px;padding:11px 13px;margin:11px 0;color:var(--red);font-size:12px}#installMetrics{grid-template-columns:repeat(auto-fit,minmax(170px,1fr))}</style>
-<style>.v991-commit,.v991-terms{border:1px solid var(--v9-border,#cbd5e1);border-radius:10px;padding:12px;margin:12px 0;background:rgba(127,127,127,.045)}.v991-figures{display:flex;gap:12px;margin:10px 0;flex-wrap:wrap}.v991-figures span{min-width:160px;flex:1;display:flex;flex-direction:column;padding:12px;border-radius:8px;background:rgba(127,127,127,.08)}.v991-figures strong{font-size:22px}.v991-figures small{opacity:.7}</style></head>
+<style>.v991-commit,.v991-terms{border:1px solid var(--v9-border,#cbd5e1);border-radius:10px;padding:12px;margin:12px 0;background:rgba(127,127,127,.045)}.v991-figures{display:flex;gap:12px;margin:10px 0;flex-wrap:wrap}.v991-figures span{min-width:160px;flex:1;display:flex;flex-direction:column;padding:12px;border-radius:8px;background:rgba(127,127,127,.08)}.v991-figures strong{font-size:22px}.v991-figures small{opacity:.7}</style><style id="sehV993ThemePolish">
+/* V9.9.3 — visual-only theme refresh: no application state or persistence changes. */
+#sehV9 .v9-header{background:linear-gradient(112deg,#192a3a 0%,#263c52 52%,#3c5267 100%);border-bottom-color:#daa95e;box-shadow:0 4px 22px rgba(11,22,34,.17)}
+#sehV9 .v9-header .v9-headtop,#sehV9 .v9-header .v9-nav{position:relative;z-index:2}
+#sehV9 .v9-header .v9-headtop{background:linear-gradient(180deg,rgba(255,255,255,.055),rgba(255,255,255,0))}
+#sehV9 .v9-header .v9-nav{background:linear-gradient(180deg,rgba(0,0,0,.04),rgba(0,0,0,.18));box-shadow:inset 0 1px rgba(255,255,255,.08)}
+#sehV9 .v9-header .v9-nav button:hover{background:rgba(255,255,255,.10)}
+#sehV9 .v9-header .v9-nav button:focus-visible,#sehV9 .v9-header button:focus-visible{outline:2px solid #ffe0a0;outline-offset:2px}
+/* Core themes: distinct but businesslike layered gradients. */
+:root[data-theme="classic"] #sehV9 .v9-header{background:linear-gradient(115deg,#15283a 0%,#28415a 50%,#4e6780 100%);border-bottom-color:#e5ae57}
+:root[data-theme="bright"] #sehV9 .v9-header{background:linear-gradient(112deg,#064e67 0%,#137d9c 54%,#27a9ba 100%);border-bottom-color:#f0c45f}
+:root[data-theme="modern"] #sehV9 .v9-header{background:linear-gradient(115deg,#1b2635 0%,#33465a 56%,#64748b 100%);border-bottom-color:#a5bfce}
+:root[data-theme="planner"] #sehV9 .v9-header{background:linear-gradient(112deg,#153c39 0%,#23665f 54%,#4c9186 100%);border-bottom-color:#dcb568}
+:root[data-theme="roar"] #sehV9 .v9-header{background:linear-gradient(112deg,#101216 0%,#292d32 53%,#4b5158 100%);border-bottom-color:#f3f3ef}
+/* Specialty themes: polish existing textures, with added depth. */
+:root[data-theme="woodgrain"] #sehV9 .v9-header{border-bottom-color:#d4a16f}
+:root[data-theme="carbon"] #sehV9 .v9-header{border-bottom-color:#b9c4d3}
+:root[data-theme="midnight"] #sehV9 .v9-header{background:linear-gradient(108deg,#090e24 0%,#1c2c56 58%,#35477b 100%);border-bottom-color:#70d6f3}
+:root[data-theme="blueprint"] #sehV9 .v9-header{border-bottom-color:#83c5ed}
+:root[data-theme="parchment"] #sehV9 .v9-header{background:linear-gradient(110deg,#55412d,#795b3f 52%,#a18460);border-bottom-color:#edcc8e}
+:root[data-theme="copper"] #sehV9 .v9-header{background:linear-gradient(115deg,#204243,#34716e 58%,#a66e47);border-bottom-color:#deb67c}
+:root[data-theme="forest"] #sehV9 .v9-header{background:linear-gradient(112deg,#1a3329,#315943 54%,#667b4a);border-bottom-color:#c9b079}
+:root[data-theme="ocean"] #sehV9 .v9-header{background:linear-gradient(110deg,#09344f,#116c89 52%,#20a0b7);border-bottom-color:#a7e1ee}
+:root[data-theme="sunset"] #sehV9 .v9-header{background:linear-gradient(110deg,#442446,#9b4d6f 52%,#d57b58);border-bottom-color:#f6be83}
+:root[data-theme="amethyst"] #sehV9 .v9-header{background:linear-gradient(110deg,#241b3a,#4b3477 56%,#8264b3);border-bottom-color:#c7adf8}
+/* Festive themes: richer colors, a single restrained motif ribbon, and a seasonal light accent. */
+:root[data-theme="fall"] #sehV9 .v9-header{background:linear-gradient(110deg,#402820 0%,#8b4a2b 51%,#a56331 100%);border-bottom-color:#efad58}
+:root[data-theme="thanksgiving"] #sehV9 .v9-header{background:linear-gradient(110deg,#432923 0%,#8b482b 51%,#a97537 100%);border-bottom-color:#f0c076}
+:root[data-theme="halloween"] #sehV9 .v9-header{background:linear-gradient(110deg,#191526 0%,#422c57 52%,#874627 100%);border-bottom-color:#ff9b42}
+:root[data-theme="winter"] #sehV9 .v9-header{background:linear-gradient(110deg,#152940 0%,#32627f 53%,#538ea6 100%);border-bottom-color:#c6ecff}
+:root[data-theme="christmas"] #sehV9 .v9-header{background:linear-gradient(110deg,#11352d 0%,#17604c 52%,#674232 100%);border-bottom-color:#e4bf62}
+:root[data-theme="summer"] #sehV9 .v9-header{background:linear-gradient(110deg,#07516a 0%,#168d9e 52%,#58b8a1 100%);border-bottom-color:#f5d778}
+:root[data-theme="fall"] #sehV9 .v9-header::after,
+:root[data-theme="thanksgiving"] #sehV9 .v9-header::after,
+:root[data-theme="halloween"] #sehV9 .v9-header::after,
+:root[data-theme="winter"] #sehV9 .v9-header::after,
+:root[data-theme="christmas"] #sehV9 .v9-header::after,
+:root[data-theme="summer"] #sehV9 .v9-header::after{
+ display:block!important;content:""!important;position:absolute;pointer-events:none;z-index:1;top:5px;right:9%;left:auto;width:310px;text-align:right;white-space:nowrap;font-size:16px;letter-spacing:8px;opacity:.58;text-shadow:0 2px 6px rgba(0,0,0,.24)
+}
+:root[data-theme="fall"] #sehV9 .v9-header::after{content:"🍁  🍂  🍁"!important}
+:root[data-theme="thanksgiving"] #sehV9 .v9-header::after{content:"🌾  🍁  🌾"!important}
+:root[data-theme="halloween"] #sehV9 .v9-header::after{content:"🦇  🎃  ✦"!important}
+:root[data-theme="winter"] #sehV9 .v9-header::after{content:"❄  ❅  ❄"!important;color:#f1fbff;opacity:.78}
+:root[data-theme="christmas"] #sehV9 .v9-header::after{content:"✦  🎄  ✦"!important;color:#f5df9b;opacity:.75}
+:root[data-theme="summer"] #sehV9 .v9-header::after{content:"☀  🌊  ☀"!important;color:#fff1b8}
+:root[data-theme="fall"] #sehV9 .v9-header::before,
+:root[data-theme="thanksgiving"] #sehV9 .v9-header::before,
+:root[data-theme="halloween"] #sehV9 .v9-header::before,
+:root[data-theme="winter"] #sehV9 .v9-header::before,
+:root[data-theme="christmas"] #sehV9 .v9-header::before,
+:root[data-theme="summer"] #sehV9 .v9-header::before{
+ content:""!important;display:block!important;position:absolute;pointer-events:none;inset:0;z-index:0;height:auto;background:radial-gradient(ellipse 450px 130px at 88% 0%,rgba(255,255,255,.13),transparent 75%),linear-gradient(180deg,rgba(255,255,255,.055),transparent 56%)
+}
+:root[data-theme="christmas"] #sehV9 .v9-header::before{background:radial-gradient(circle at 20px 8px,#f8d66e 0 2px,transparent 3px),radial-gradient(circle at 54px 8px,#f16b63 0 2px,transparent 3px),radial-gradient(circle at 88px 8px,#8bd4ae 0 2px,transparent 3px),radial-gradient(ellipse 480px 140px at 80% 0%,rgba(255,255,255,.12),transparent 74%);background-size:108px 100%,108px 100%,108px 100%,100% 100%;background-repeat:repeat-x}
+@media(max-width:900px){:root[data-theme="fall"] #sehV9 .v9-header::after,:root[data-theme="thanksgiving"] #sehV9 .v9-header::after,:root[data-theme="halloween"] #sehV9 .v9-header::after,:root[data-theme="winter"] #sehV9 .v9-header::after,:root[data-theme="christmas"] #sehV9 .v9-header::after,:root[data-theme="summer"] #sehV9 .v9-header::after{display:none!important}}
+@media(prefers-reduced-motion:reduce){#sehV9 .v9-header{transition:none!important}}
+</style>
+</head>
 <body class="cloud-booting seh-v9-mode">
 <div id="sehV9"></div>
 <div class="shell">
@@ -1674,7 +1732,7 @@ function duplicatePanel(candidate,excludeId=''){
 }
 function candidateFromForm(form){const f=new FormData(form);return {id:'preview',account:String(f.get('account')||'').trim(),number:String(f.get('royalAccount')||'').trim(),v9:{requestType:String(f.get('requestType')||''),parentId:String(f.get('parentId')||''),gpo:String(f.get('gpo')||'None'),ticket:String(f.get('ticket')||''),memberId:String(f.get('memberId')||''),royalAccount:String(f.get('royalAccount')||''),email:String(f.get('email')||''),phone:String(f.get('phone')||''),address:String(f.get('address')||''),city:String(f.get('city')||''),zip:String(f.get('zip')||'')}}}
 const count=(f)=>records().filter(f).length;
-function shell(inner){const s=B.get(),theme=s.settings?.appearance?.theme||'classic',activeRecord=selected?records().find(r=>r.id===selected):null,recordStrip=activeRecord?`<div class="v984-recordbar" aria-label="Current customer"><div class="v984-recordbar-account">${esc(activeRecord.account||'Unnamed')}</div><div class="v984-recordbar-next"><b>Next:</b> ${esc(activeRecord.next||'No action scheduled')}${activeRecord.due?` · ${dateFormat(activeRecord.due)}`:''}</div>${pill(stage(activeRecord),statusColor(stage(activeRecord)))}</div>`:'';root.innerHTML=`<div class="v9-header"><div class="v9-headtop"><div class="v9-brand"><div class="v9-logo">SE</div><div><h1>Sales Execution Hub</h1><small>Sales & Account Execution · Version 9.9.2</small></div></div><div class="v9-topright"><span style="font-size:11px;color:#ccc" id="v9SaveState">Cloud workspace</span><button class="v9-btn gold v9-noprint" data-action="intake">+ New Lead</button></div></div><nav class="v9-nav">${[['today','My Day'],['requests','Sales Pipeline'],['execution','Execution & Installations'],['archive','Archive'],['reports','Reports'],['settings','Settings & Backup']].map(([t,l])=>`<button data-tab="${t}" class="${t===tab?'active':''}">${l}</button>`).join('')}</nav>${recordStrip}</div><div class="v9-main">${inner}<div class="v9-footer">Sales Execution Hub V9.9.0 · ${esc(themes.find(x=>x[0]===theme)?.[1]||'Theme')} · Existing cloud data preserved</div></div>${modal?modalView():''}`;bind()}
+function shell(inner){const s=B.get(),theme=s.settings?.appearance?.theme||'classic',activeRecord=selected?records().find(r=>r.id===selected):null,recordStrip=activeRecord?`<div class="v984-recordbar" aria-label="Current customer"><div class="v984-recordbar-account">${esc(activeRecord.account||'Unnamed')}</div><div class="v984-recordbar-next"><b>Next:</b> ${esc(activeRecord.next||'No action scheduled')}${activeRecord.due?` · ${dateFormat(activeRecord.due)}`:''}</div>${pill(stage(activeRecord),statusColor(stage(activeRecord)))}</div>`:'';root.innerHTML=`<div class="v9-header"><div class="v9-headtop"><div class="v9-brand"><div class="v9-logo">SE</div><div><h1>Sales Execution Hub</h1><small>Sales & Account Execution · Version 9.9.3</small></div></div><div class="v9-topright"><span style="font-size:11px;color:#ccc" id="v9SaveState">Cloud workspace</span><button class="v9-btn gold v9-noprint" data-action="intake">+ New Lead</button></div></div><nav class="v9-nav">${[['today','My Day'],['requests','Sales Pipeline'],['execution','Execution & Installations'],['archive','Archive'],['reports','Reports'],['settings','Settings & Backup']].map(([t,l])=>`<button data-tab="${t}" class="${t===tab?'active':''}">${l}</button>`).join('')}</nav>${recordStrip}</div><div class="v9-main">${inner}<div class="v9-footer">Sales Execution Hub V9.9.0 · ${esc(themes.find(x=>x[0]===theme)?.[1]||'Theme')} · Existing cloud data preserved</div></div>${modal?modalView():''}`;bind()}
 function heading(title,desc,action=''){return `<div class="v9-pagehead"><div><h2>${title}</h2><p>${desc}</p></div>${action}</div>`}
 function row(r){const m=meta(r),iss=issueList(r);return `<tr class="v9-click" data-open="${esc(r.id)}">${tab==='requests'?`<td><input type="checkbox" data-bulk-id="${esc(r.id)}" ${bulkSelected.has(r.id)?'checked':''} aria-label="Select ${esc(r.account)}"></td>`:''}<td><b>${esc(r.account||'Unnamed')}</b><div class="v9-mini">${esc([m.city,m.state].filter(Boolean).join(', '))}</div><div class="v9-mini" style="margin-top:3px;color:var(--muted)" title="${esc(r.updatedAt||r.createdAt||'No update timestamp')}">Last updated: ${dateFormat((r.updatedAt||r.createdAt||'').slice(0,10))}</div></td><td>${esc(gp(r))}<div class="v9-mini">${esc(m.ticket||'')}</div></td><td>${esc(requestType(r))}</td><td>${pill(archived(r)?'Archived':lost(r)?'Lost':requestType(r)==='GPO LINK Request'?m.linq||'Received':stage(r),statusColor(stage(r)))}</td><td>${esc(short(r.next||'Not scheduled'))}<div class="v9-mini">${dateFormat(r.due)}</div></td><td>${iss.length?pill(iss[0][0],iss[0][1]==='bad'?'red':'amber'):pill('On track','green')}</td></tr>`}
 function table(list){return `<div class="v9-tablewrap"><table><thead><tr>${tab==='requests'?'<th><input type="checkbox" id="v92SelectAll" aria-label="Select visible records"></th>':''}<th>Business / Location</th><th>GPO / Ticket</th><th>Work Type</th><th>Status</th><th>Next Action</th><th>Attention</th></tr></thead><tbody>${list.length?list.map(row).join(''):`<tr><td colspan="${tab==='requests'?7:6}" class="v9-empty">No matching leads or opportunities.</td></tr>`}</tbody></table></div>`}
