@@ -1342,9 +1342,13 @@ renderDailyFocus(document.querySelector("#dailyFocusEnabled")?.checked!==false);
         const variants=sheets.map(sheet=>group.bySheet.get(sheet)[occurrence]).filter(Boolean);
         const preferred=variants.slice().sort((a,b)=>sheetPriority(b)-sheetPriority(a)||usefulScore(b)-usefulScore(a))[0];
         const sources=[...new Set(variants.flatMap(row=>Array.isArray(row.sourceSheets)?row.sourceSheets:[rowSheet(row)]))];
-        /* Do not inherit stale shipment, funding, quantities or check-in counts
-           from an older sheet over explicit values from the newer sheet. */
+        /* Workbook tabs are alternate views of the same order, not additive deliveries.
+           Keep the live ordered qty, but NEVER regress cumulative issued/tech-received
+           counts if the live view contains 0 due to stale formulas or previous imports. */
         const mergedRow={...preferred,sourceSheets:sources,sourceSheet:rowSheet(preferred),duplicateAcrossTabs:Math.max(Number(preferred.duplicateAcrossTabs)||0,variants.length-1,sources.length-1),sourceRows:variants.flatMap(row=>Array.isArray(row.sourceRows)?row.sourceRows:[{sheet:rowSheet(row),row:row.sourceRow}])};
+        mergedRow.qtyIssued=Math.max(0,...variants.map(row=>Number(row.qtyIssued)||0));
+        mergedRow.techChecked=Math.max(0,...variants.map(row=>Number(row.techChecked)||0));
+        if(variants.some(row=>(Number(row.qtyIssued)||0)!==mergedRow.qtyIssued||(Number(row.techChecked)||0)!==mergedRow.techChecked))mergedRow.quantityReconciled=true;
         for(const field of ['strNumber','strDate','stoNumber','stoDate','poNumber','poDate','tracking','notes','deliveryNote','techDate','shipDate']){
           if(mergedRow[field]===undefined||mergedRow[field]===null||String(mergedRow[field]).trim()===''){
             const donor=variants.find(row=>row!==preferred&&row[field]!==undefined&&row[field]!==null&&String(row[field]).trim()!=='');
@@ -1387,9 +1391,12 @@ renderDailyFocus(document.querySelector("#dailyFocusEnabled")?.checked!==false);
         const variants=sheets.map(([,rows])=>rows[j]).filter(Boolean);
         variants.sort((a,b)=>sheetPriority(b)-sheetPriority(a)||usefulScore(b)-usefulScore(a));
         const newest=variants[0],allSources=[...new Set(variants.flatMap(x=>Array.isArray(x.sourceSheets)?x.sourceSheets:[rowSheet(x)]))];
-        /* Fill missing metadata from older copies; never override a nonblank field on the authoritative row.
-           Zero quantities on a newer row are meaningful, and must not be filled from an older row. */
+        /* The latest sheet wins for order metadata. Cumulative fulfillment progress
+           is reconciled using the highest count observed for this exact order line. */
         const chosen={...newest,sourceSheets:allSources,sourceSheet:rowSheet(newest),duplicateAcrossTabs:Math.max(0,variants.length-1)};
+        chosen.qtyIssued=Math.max(0,...variants.map(row=>Number(row.qtyIssued)||0));
+        chosen.techChecked=Math.max(0,...variants.map(row=>Number(row.techChecked)||0));
+        if(variants.some(row=>(Number(row.qtyIssued)||0)!==chosen.qtyIssued||(Number(row.techChecked)||0)!==chosen.techChecked))chosen.quantityReconciled=true;
         for(const field of ['strNumber','strDate','stoNumber','stoDate','poNumber','poDate','tracking','notes','deliveryNote','techDate','shipDate']){
           if(chosen[field]===undefined||chosen[field]===null||String(chosen[field]).trim()===''){
             const other=variants.slice(1).find(x=>x[field]!==undefined&&x[field]!==null&&String(x[field]).trim()!=='');
@@ -1578,7 +1585,7 @@ renderEquipmentStatus=function(record){
   if(metrics)metrics.innerHTML=[['Lines',rows.length],['Funded',rows.filter(equipmentFunded).length],['Issued / shipped',rows.filter(equipmentShipped).length],['Checked in by tech',rows.filter(x=>equipmentTechState(x)==='Checked in by tech').length]].map(([l,n])=>`<div class="equipmentmetric"><span>${l}</span><b>${n}</b></div>`).join('');
   // Version marker also distinguishes a new deployment from a browser-cached older app.
   const foot=content.querySelector('p.fine:last-of-type');
-  if(foot&&!foot.querySelector('.v9911-ver'))foot.insertAdjacentHTML('beforeend',`<span class="v9911-ver"> · ESR view V9.9.12 · Partially issued quantities remain visible · STR/STO dates appear only if supplied by the report</span>`);
+  if(foot&&!foot.querySelector('.v9911-ver'))foot.insertAdjacentHTML('beforeend',`<span class="v9911-ver"> · ESR view V9.9.13 · Partially issued quantities remain visible · STR/STO dates appear only if supplied by the report</span>`);
 };
 
 
@@ -2024,7 +2031,7 @@ function candidateFromForm(form){const f=new FormData(form);return {id:'preview'
 const count=(f)=>records().filter(f).length;
 const v995ThemePreviews=[['classic', '#112a46', '#335d81', '#d5b77b', '▥'], ['bright', '#066870', '#25a6a4', '#d7fcdf', '✦'], ['modern', '#292c3e', '#57647c', '#c5cddd', '◆'], ['planner', '#1e4054', '#477b84', '#e4c488', '▤'], ['roar', '#141414', '#5b5b5b', '#f8f8f8', '◩'], ['fall', '#473020', '#b5783d', '#f3d58b', '🍁'], ['thanksgiving', '#4d2b22', '#a66a34', '#ffe0a7', '🌾'], ['halloween', '#20152c', '#864b63', '#ffc779', '🎃'], ['winter', '#132c51', '#6697c7', '#e0f5ff', '❄'], ['christmas', '#103e31', '#246d4d', '#f3d76d', '🎄'], ['summer', '#076a8b', '#51beb2', '#ffe49a', '☀'], ['woodgrain', '#4a291b', '#9f724c', '#f6dfbf', '▥'], ['carbon', '#171b22', '#555b61', '#e0e5eb', '◆'], ['midnight', '#13162c', '#4938a2', '#69faf1', '✦'], ['blueprint', '#102b59', '#326eaa', '#d7eaff', '▦'], ['parchment', '#8d7359', '#e6c99c', '#fff2d4', '✎'], ['copper', '#294f50', '#bb805c', '#e1c8a1', '✦'], ['forest', '#12392e', '#557c4d', '#cde8af', '🌲'], ['ocean', '#092e51', '#277f97', '#d4ffff', '≈'], ['sunset', '#5a2953', '#db6e53', '#ffd29c', '☀'], ['amethyst', '#302044', '#7950a2', '#e4c9ff', '✦'], ['coffeeshop', '#4b2d1d', '#a77755', '#f1d4ab', '☕'], ['espresso', '#261812', '#a05b36', '#f2d0af', '☕'], ['skyline', '#112344', '#5170a8', '#f39d71', '▥'], ['clouds', '#6ba8e9', '#bbddf8', '#ffffff', '☁'], ['rainforest', '#123b29', '#2d9466', '#bcf3b6', '🌿'], ['desert', '#b67642', '#ebb776', '#a2cbe8', '☀'], ['aurora', '#151b42', '#218d85', '#ac80fa', '✦'], ['coral', '#12566f', '#37bbba', '#ff9f82', '◌'], ['lavender', '#60477f', '#a88ade', '#f5d9ff', '✿'], ['citrus', '#70a42d', '#ffda55', '#ffad45', '🍋']];
 function v995ThemeGrid(current){return `<div class="v995-themes" role="group" aria-label="Visual theme previews">${themes.map(([key,label],i)=>{const p=v995ThemePreviews.find(v=>v[0]===key)||v995ThemePreviews[0];return `<button type="button" class="v995-theme-card ${key===current?'v995-selected':''}" data-theme-pick="${key}" data-theme-label="${label.toLowerCase()}" aria-pressed="${key===current}" title="Preview ${label}"><span class="v995-swatch" style="--sw1:${p[1]};--sw2:${p[2]};--sw3:${p[3]}"><span class="v995-mini-brand">SE</span><span class="v995-mini-scene">${p[4]}</span><span class="v995-mini-nav"></span></span><span class="v995-card-name">${label}</span><span class="v995-card-check" aria-hidden="true">✓</span></button>`}).join('')}</div>`}
-function shell(inner){const s=B.get(),theme=s.settings?.appearance?.theme||'classic',activeRecord=selected?records().find(r=>r.id===selected):null,recordStrip=activeRecord?`<div class="v984-recordbar" aria-label="Current customer"><div class="v984-recordbar-account">${esc(activeRecord.account||'Unnamed')}</div><div class="v984-recordbar-next"><b>Next:</b> ${esc(activeRecord.next||'No action scheduled')}${activeRecord.due?` · ${dateFormat(activeRecord.due)}`:''}</div>${pill(stage(activeRecord),statusColor(stage(activeRecord)))}</div>`:'';root.innerHTML=`<div class="v9-header"><div class="v9-headtop"><div class="v9-brand"><div class="v9-logo">SE</div><div><h1>Sales Execution Hub</h1><small>Sales & Account Execution · Version 9.9.12</small></div></div><div class="v9-topright"><span style="font-size:11px;color:#ccc" id="v9SaveState">Cloud workspace</span><button class="v9-btn gold v9-noprint" data-action="intake">+ New Lead</button></div></div><nav class="v9-nav">${[['today','My Day'],['requests','Sales Pipeline'],['execution','Execution & Installations'],['archive','Archive'],['reports','Reports'],['settings','Settings & Backup']].map(([t,l])=>`<button data-tab="${t}" class="${t===tab?'active':''}">${l}</button>`).join('')}</nav>${recordStrip}</div><div class="v9-main">${inner}<div class="v9-footer">Sales Execution Hub V9.9.12 · ${esc(themes.find(x=>x[0]===theme)?.[1]||'Theme')} · Existing cloud data preserved</div></div>${modal?modalView():''}`;bind()}
+function shell(inner){const s=B.get(),theme=s.settings?.appearance?.theme||'classic',activeRecord=selected?records().find(r=>r.id===selected):null,recordStrip=activeRecord?`<div class="v984-recordbar" aria-label="Current customer"><div class="v984-recordbar-account">${esc(activeRecord.account||'Unnamed')}</div><div class="v984-recordbar-next"><b>Next:</b> ${esc(activeRecord.next||'No action scheduled')}${activeRecord.due?` · ${dateFormat(activeRecord.due)}`:''}</div>${pill(stage(activeRecord),statusColor(stage(activeRecord)))}</div>`:'';root.innerHTML=`<div class="v9-header"><div class="v9-headtop"><div class="v9-brand"><div class="v9-logo">SE</div><div><h1>Sales Execution Hub</h1><small>Sales & Account Execution · Version 9.9.13</small></div></div><div class="v9-topright"><span style="font-size:11px;color:#ccc" id="v9SaveState">Cloud workspace</span><button class="v9-btn gold v9-noprint" data-action="intake">+ New Lead</button></div></div><nav class="v9-nav">${[['today','My Day'],['requests','Sales Pipeline'],['execution','Execution & Installations'],['archive','Archive'],['reports','Reports'],['settings','Settings & Backup']].map(([t,l])=>`<button data-tab="${t}" class="${t===tab?'active':''}">${l}</button>`).join('')}</nav>${recordStrip}</div><div class="v9-main">${inner}<div class="v9-footer">Sales Execution Hub V9.9.13 · ${esc(themes.find(x=>x[0]===theme)?.[1]||'Theme')} · Existing cloud data preserved</div></div>${modal?modalView():''}`;bind()}
 function heading(title,desc,action=''){return `<div class="v9-pagehead"><div><h2>${title}</h2><p>${desc}</p></div>${action}</div>`}
 function row(r){const m=meta(r),iss=issueList(r);return `<tr class="v9-click" data-open="${esc(r.id)}">${tab==='requests'?`<td><input type="checkbox" data-bulk-id="${esc(r.id)}" ${bulkSelected.has(r.id)?'checked':''} aria-label="Select ${esc(r.account)}"></td>`:''}<td><b>${esc(r.account||'Unnamed')}</b><div class="v9-mini">${esc([m.city,m.state].filter(Boolean).join(', '))}</div><div class="v9-mini" style="margin-top:3px;color:var(--muted)" title="${esc(r.updatedAt||r.createdAt||'No update timestamp')}">Last updated: ${dateFormat((r.updatedAt||r.createdAt||'').slice(0,10))}</div></td><td>${esc(gp(r))}<div class="v9-mini">${esc(m.ticket||'')}</div></td><td>${esc(requestType(r))}</td><td>${pill(archived(r)?'Archived':lost(r)?'Lost':requestType(r)==='GPO LINK Request'?m.linq||'Received':stage(r),statusColor(stage(r)))}</td><td>${esc(short(r.next||'Not scheduled'))}<div class="v9-mini">${dateFormat(r.due)}</div></td><td>${iss.length?pill(iss[0][0],iss[0][1]==='bad'?'red':'amber'):pill('On track','green')}</td></tr>`}
 function table(list){return `<div class="v9-tablewrap"><table><thead><tr>${tab==='requests'?'<th><input type="checkbox" id="v92SelectAll" aria-label="Select visible records"></th>':''}<th>Business / Location</th><th>GPO / Ticket</th><th>Work Type</th><th>Status</th><th>Next Action</th><th>Attention</th></tr></thead><tbody>${list.length?list.map(row).join(''):`<tr><td colspan="${tab==='requests'?7:6}" class="v9-empty">No matching leads or opportunities.</td></tr>`}</tbody></table></div>`}
@@ -2052,7 +2059,7 @@ function pipelineIsMatch(r){const selectedPreset=pipelinePreset(pipelineView);re
 
 function requests(){const rs=records().filter(pipelineIsMatch).sort(pipelineSorting),savedOptions=[...pipelineBuiltins,...pipelineSaved.map(v=>[v.id,v.name])];shell(heading('Sales Pipeline',`${rs.length} displayed of ${records().length} · Find and work customers quickly.`,`<div class="v9-row"><button class="v9-btn gold" data-action="bulkImport">Bulk Excel / CSV</button><button class="v9-btn alt" data-action="import">Import PDF / Email</button><button class="v9-btn alt" data-action="export">Export CSV</button></div>`)+`<div class="v9-tools v985-viewbar"><label class="v985-compact">Saved view<select id="v985View">${sel(savedOptions,pipelineView)}</select></label><label class="v985-compact">Sort by<select id="v985Sort">${sel([['updated','Last updated'],['due','Follow-up due'],['name','Business name'],['created','Date created'],['stage','Stage'],['gpo','GPO'],['type','Work type'],['install','Install date'],['attention','Attention']],pipelineSort)}</select></label><button class="v9-btn alt tiny" id="v985Direction">${pipelineDesc?'Newest / Z–A ↓':'Oldest / A–Z ↑'}</button><button class="v9-btn alt tiny" data-action="pipelineDefault">☆ Set Default</button><button class="v9-btn alt tiny" data-action="pipelineSaveView">+ Save View</button>${pipelineSaved.some(x=>x.id===pipelineView)?'<button class="v9-btn alt tiny" data-action="pipelineDeleteView">Delete View</button>':''}<span class="v9-mini">Default: ${esc(savedOptions.find(x=>x[0]===pipelineDefault)?.[1]||'Recently Updated')}</span></div><div class="v9-tools"><input id="v9Query" placeholder="Search store, contact, phone, city, ticket..." value="${esc(query)}"><select id="v9Filter">${sel([['all','Active'],['open','All open'],['attention','Needs attention'],['due','Due / overdue'],['unworked','Unworked'],['linq','Open GPO LINK'],['install','Installations'],['onhold','On hold'],['won','Won'],['linqcomplete','GPO LINK complete'],['lost','Archived — Lost']],filter)}</select><select id="v9WorkTypeFilter">${sel([['all','All Work Types'],...types.map(t=>[t,t==='Other Request'?'Other Opportunity (legacy)':t])],workTypeFilter)}</select><select id="v9GpoFilter">${sel([['all','All GPOs'],...gpos().map(x=>[x,x])],gpoFilter)}</select></div><div class="v9-panel">${bulkToolbar()}${pipelineTable(rs)}</div>`)}
 function archive(){const rs=records().filter(r=>(archived(r)||lost(r))&&(archiveGpo==='all'||gp(r)===archiveGpo)&&(!archiveQuery||[r.account,meta(r).contact,meta(r).ticket,gp(r),meta(r).archiveReason,meta(r).lostReason].join(' ').toLowerCase().includes(archiveQuery.toLowerCase()))).sort((a,b)=>(meta(b).archivedAt||closedOn(b)||'').localeCompare(meta(a).archivedAt||closedOn(a)||''));shell(heading('Archive','Neutral archives stay separate from Lost outcomes. All history is retained and any record can be restored.')+`<div class="v9-tools"><input id="v9ArchiveQuery" placeholder="Search archived customers..." value="${esc(archiveQuery)}"><select id="v9ArchiveGpo">${sel([['all','All GPOs'],...gpos().map(x=>[x,x])],archiveGpo)}</select><button class="v9-btn alt" data-action="export">Export all records CSV</button></div><div class="v9-panel"><div class="v9-tablewrap"><table><thead><tr><th>Business</th><th>GPO / Ticket</th><th>Archive Type</th><th>Reason</th><th>Date</th><th>Action</th></tr></thead><tbody>${rs.map(r=>`<tr><td><b>${esc(r.account)}</b></td><td>${esc(gp(r))}<div class="v9-mini">${esc(meta(r).ticket||'')}</div></td><td>${pill(archived(r)?'Neutral archive':'Lost',archived(r)?'blue':'red')}</td><td>${esc(archived(r)?meta(r).archiveReason||'Historical record':meta(r).lostReason||'Not recorded (legacy)')}</td><td>${dateFormat(archived(r)?(meta(r).archivedAt||'').slice(0,10):closedOn(r))}</td><td><button class="v9-btn alt tiny" data-open="${esc(r.id)}">Review / Restore</button></td></tr>`).join('')||'<tr><td colspan="6" class="v9-empty">Archive is empty.</td></tr>'}</tbody></table></div></div>`)}
-/* V9.9.12 — live order view + partial fulfillment, preserving true independent shipments. */
+/* V9.9.13 — preserve verified cumulative issued and tech-received quantities across ESR tab copies. */
 function esrRows(r){
  const input=(B.get().equipmentRows||[]).filter(x=>x.recordId===r.id);
  const norm=x=>String(x??'').toLowerCase().replace(/[^a-z0-9]/g,'');
@@ -2073,7 +2080,40 @@ function esrRows(r){
    for(let i=0;i<max;i++){
      const variants=entries.map(([,arr])=>arr[i]).filter(Boolean);
      const selected=variants.slice().sort((a,b)=>rank(b)-rank(a)||(Number(b.techChecked||0)+Number(b.qtyIssued||0))-(Number(a.techChecked||0)+Number(a.qtyIssued||0)))[0];
-     const merged={...selected,sourceSheets:[...new Set(variants.flatMap(v=>v.sourceSheets||[source(v)]))]};for(const f of ['strNumber','strDate','stoNumber','stoDate','poNumber','poDate','notes','deliveryNote','tracking','techDate','shipDate'])if(!merged[f]){const donor=variants.find(v=>v[f]);if(donor)merged[f]=donor[f]}result.push(merged);
+     const merged={...selected,sourceSheets:[...new Set(variants.flatMap(v=>v.sourceSheets||[source(v)]))]};
+   merged.qtyIssued=Math.max(0,...variants.map(v=>Number(v.qtyIssued)||0));
+   merged.techChecked=Math.max(0,...variants.map(v=>Number(v.techChecked)||0));
+   if(variants.some(v=>(Number(v.qtyIssued)||0)!==merged.qtyIssued||(Number(v.techChecked)||0)!==merged.techChecked))merged.quantityReconciled=true;
+   for(const f of ['strNumber','strDate','stoNumber','stoDate','poNumber','poDate','notes','deliveryNote','tracking','techDate','shipDate'])if(!merged[f]){const donor=variants.find(v=>v[f]);if(donor)merged[f]=donor[f]}
+   result.push(merged);
+   }
+ }
+ const sourceRows=B.get().equipmentSourceRows||[];
+ if(sourceRows.length&&result.length){
+   const wanted=new Set(result.map(v=>[norm(v.customerNumber),norm(v.requestNumber||v.strNumber),norm(v.material||v.description)].join('|')));
+   const supplementary=new Map();
+   for(const row of sourceRows){
+     const key=[norm(row.customerNumber),norm(row.requestNumber||row.strNumber),norm(row.material||row.description)].join('|');
+     if(!wanted.has(key))continue;
+     const curr=supplementary.get(key)||{issued:0,checked:0};
+     curr.issued=Math.max(curr.issued,Number(row.qtyIssued)||0);
+     curr.checked=Math.max(curr.checked,Number(row.techChecked)||0);
+     supplementary.set(key,curr);
+   }
+   const resultCounts=new Map();
+   for(const row of result){
+     const key=[norm(row.customerNumber),norm(row.requestNumber||row.strNumber),norm(row.material||row.description)].join('|');
+     resultCounts.set(key,(resultCounts.get(key)||0)+1);
+   }
+   for(const row of result){
+     const key=[norm(row.customerNumber),norm(row.requestNumber||row.strNumber),norm(row.material||row.description)].join('|');
+     // Do not assign the same cumulative source count to multiple distinct
+     // shipments/fulfillment lines sharing a request and material.
+     if(resultCounts.get(key)!==1)continue;
+     const extra=supplementary.get(key);if(!extra)continue;
+     if(extra.issued>(Number(row.qtyIssued)||0)||extra.checked>(Number(row.techChecked)||0))row.quantityReconciled=true;
+     row.qtyIssued=Math.max(Number(row.qtyIssued)||0,extra.issued);
+     row.techChecked=Math.max(Number(row.techChecked)||0,extra.checked);
    }
  }
  return result.sort((a,b)=>String(b.fundedDate||b.goodsIssueDate||b.stoDate||'').localeCompare(String(a.fundedDate||a.goodsIssueDate||a.stoDate||'')));
@@ -2087,10 +2127,10 @@ function esrDetail(r){
  const techStatus=x=>{const n=num(x.techChecked),issued=num(x.qtyIssued);if(n>0&&issued>0&&n>=issued)return 'Checked in by tech';if(n>0)return issued>0?'Partially checked in':'Received by tech';return issued>0?'Awaiting tech check-in':'Not issued'};
  const stateTag=(label,kind)=>`<span class="v999-esr-badge ${kind}">${esc(label)}</span>`;
  const funded=rows.filter(x=>/funded|approved|yes/i.test(String(x.funded||''))||!!x.fundedDate).length;
- const shipped=rows.filter(x=>/shipped|issued|delivered/i.test(String(x.shipping||''))||!!x.goodsIssueDate).length;
+ const shipped=rows.filter(x=>num(x.qtyIssued)>0||/shipped|issued|delivered/i.test(String(x.shipping||''))||!!x.goodsIssueDate).length;
  const checked=rows.filter(x=>num(x.techChecked)>0&&num(x.techChecked)>=num(x.qtyIssued)&&num(x.qtyIssued)>0).length;
  const cols=rows.map(x=>{
-   const tech=techStatus(x),shipping=String(x.shipping||'Pending'),isShipped=/shipped|issued|delivered/i.test(shipping)||!!x.goodsIssueDate;
+   const tech=techStatus(x),shipping=String(x.shipping||'Pending'),isShipped=num(x.qtyIssued)>0||/shipped|issued|delivered/i.test(shipping)||!!x.goodsIssueDate;
    const ordered=Math.max(0,num(x.qtyOrdered)),issued=Math.max(0,num(x.qtyIssued)),received=Math.max(0,num(x.techChecked)),remaining=Math.max(0,ordered-issued),partial=issued>0&&remaining>0;
    const status=/pending|not issued/i.test(tech)?'neutral':/partially|awaiting|received/i.test(tech)?'warning':'positive';
    const realNote=v=>v&&!/^(?:1899|1900)-\d{2}-\d{2}$/.test(String(v).trim());
